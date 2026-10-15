@@ -28,6 +28,16 @@
         "default": "./dist/cjs/express.js"
       }
     },
+    "./nest": {
+      "import": {
+        "types": "./dist/esm/nest.d.ts",
+        "default": "./dist/esm/nest.js"
+      },
+      "require": {
+        "types": "./dist/cjs/nest.d.ts",
+        "default": "./dist/cjs/nest.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -48,19 +58,43 @@
     "*": {
       "express": [
         "./dist/esm/express.d.ts"
+      ],
+      "nest": [
+        "./dist/esm/nest.d.ts"
       ]
     }
   },
   "peerDependencies": {
-    "express": ">=4"
+    "express": ">=4",
+    "@nestjs/common": ">=9",
+    "@nestjs/core": ">=9",
+    "reflect-metadata": ">=0.1.12",
+    "rxjs": ">=7"
   },
   "peerDependenciesMeta": {
     "express": {
       "optional": true
+    },
+    "@nestjs/common": {
+      "optional": true
+    },
+    "@nestjs/core": {
+      "optional": true
+    },
+    "reflect-metadata": {
+      "optional": true
+    },
+    "rxjs": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
     "@types/express": "^5.0.6",
-    "express": "^5.3.0"
+    "express": "^5.3.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   }
 }
