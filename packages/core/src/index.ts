@@ -1,4 +1,29 @@
 export {
+  BATCH_SIZE,
+  BUDGET_SECONDS,
+  Client,
+  DEFAULT_TIMEOUT_SECONDS,
+  FLUSH_DELAY_MS,
+  INGEST_PATH,
+  MAX_BUFFER,
+  MAX_TIMEOUT_SECONDS,
+  MIN_RETRY_SECONDS,
+  Transport,
+  defaultScheduler,
+  normalizeLevel,
+  normalizeTimeout,
+} from './client.js';
+export type {
+  ClientOptions,
+  DeliveryResult,
+  FetchInit,
+  FetchLike,
+  FetchResponseLike,
+  FlushResult,
+  Scheduler,
+  TransportOptions,
+} from './client.js';
+export {
   LOG_LEVELS,
   MAX_CONTEXT_BYTES,
   MAX_CONTEXT_DEPTH,
