@@ -25,7 +25,7 @@ export function rejectionMode(args: readonly string[] = process.execArgv, nodeOp
   return ['strict', 'warn', 'none', 'warn-with-error-code'].includes(mode) ? (mode as RejectionMode) : 'throw';
 }
 
-async function flushWithin(client: Client, milliseconds: number): Promise<void> {
+export async function flushWithin(client: Client, milliseconds: number): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const limit = new Promise<void>((resolve) => {
     timer = setTimeout(resolve, milliseconds);

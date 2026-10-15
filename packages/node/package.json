@@ -38,6 +38,16 @@
         "default": "./dist/cjs/nest.js"
       }
     },
+    "./next": {
+      "import": {
+        "types": "./dist/esm/next.d.ts",
+        "default": "./dist/esm/next.js"
+      },
+      "require": {
+        "types": "./dist/cjs/next.d.ts",
+        "default": "./dist/cjs/next.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -61,6 +71,9 @@
       ],
       "nest": [
         "./dist/esm/nest.d.ts"
+      ],
+      "next": [
+        "./dist/esm/next.d.ts"
       ]
     }
   },
@@ -69,7 +82,8 @@
     "@nestjs/common": ">=9",
     "@nestjs/core": ">=9",
     "reflect-metadata": ">=0.1.12",
-    "rxjs": ">=7"
+    "rxjs": ">=7",
+    "next": ">=15"
   },
   "peerDependenciesMeta": {
     "express": {
@@ -86,6 +100,9 @@
     },
     "rxjs": {
       "optional": true
+    },
+    "next": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -94,6 +111,7 @@
     "@nestjs/platform-express": "^11.2.7",
     "@types/express": "^5.0.6",
     "express": "^5.3.0",
+    "next": "^16.4.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   }

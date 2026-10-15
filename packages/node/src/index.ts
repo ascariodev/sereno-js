@@ -16,13 +16,19 @@ interface Active {
   uninstall: () => void;
 }
 
-let active: Active | undefined;
+/** Shared through globalThis so the ESM and CommonJS copies of the package see the same setup. */
+const ACTIVE_KEY = Symbol.for('@ascariodev/sereno-node.active');
+const registry = globalThis as unknown as Record<symbol, Active | undefined>;
+
+function current(): Active | undefined {
+  return registry[ACTIVE_KEY];
+}
 
 const EMPTY_RESULT: FlushResult = { sent: 0, failed: 0, dropped: 0 };
 
 function release(): Promise<FlushResult> {
-  const previous = active;
-  active = undefined;
+  const previous = current();
+  registry[ACTIVE_KEY] = undefined;
 
   if (!previous) {
     return Promise.resolve({ ...EMPTY_RESULT });
@@ -50,24 +56,28 @@ export function init(options: InitOptions = {}): Client {
     level: options.level ?? env.SERENO_LEVEL,
   });
 
-  active = { client, uninstall: client.configured && handlers !== false ? installProcessHandlers(client) : () => undefined };
+  registry[ACTIVE_KEY] = { client, uninstall: client.configured && handlers !== false ? installProcessHandlers(client) : () => undefined };
 
   return client;
 }
 
 /** Buffers a thrown value at level `error`; a value that is not an Error is sent as `String(value)`. */
 export function captureException(error: unknown, context?: Record<string, unknown>): void {
+  const active = current();
+
   if (active) {
     capture(active.client, error, context);
   }
 }
 
 export function log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
-  active?.client.log({ level, message, context });
+  current()?.client.log({ level, message, context });
 }
 
 /** Sends what is buffered; resolves when done and never rejects. Use it before a serverless handler returns. */
 export function flush(): Promise<FlushResult> {
+  const active = current();
+
   return active ? active.client.flush() : Promise.resolve({ ...EMPTY_RESULT });
 }
 
@@ -78,5 +88,5 @@ export function close(): Promise<FlushResult> {
 
 /** The active client, for framework integrations; undefined before `init`. */
 export function getClient(): Client | undefined {
-  return active?.client;
+  return current()?.client;
 }
