@@ -445,6 +445,22 @@ describe('Transport budget and resilience', () => {
     expect(result).toMatchObject({ status: 'rejected', code: 500, attempts: 1 });
   });
 
+  it('makes a single attempt on a 500 or a network error when retry is false', async () => {
+    let calls = 0;
+    const rejected = new Transport(url, 'k', {
+      retry: false,
+      fetch: async () => {
+        calls++;
+
+        return { status: 500, text: async () => 'e' };
+      },
+    });
+
+    expect(await rejected.send([])).toMatchObject({ status: 'rejected', code: 500, attempts: 1 });
+    expect(await new Transport(url, 'k', { retry: false, fetch: failing }).send([])).toMatchObject({ status: 'error', attempts: 1 });
+    expect(calls).toBe(1);
+  });
+
   it('retries with the remaining budget when it is below the timeout', async () => {
     const delays: number[] = [];
     let time = 0;

@@ -50,6 +50,9 @@
     },
     "./package.json": "./package.json"
   },
+  "bin": {
+    "sereno-node": "./dist/esm/cli.js"
+  },
   "files": [
     "dist"
   ],

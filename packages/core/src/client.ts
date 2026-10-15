@@ -45,6 +45,8 @@ export interface TransportOptions {
   headers?: Record<string, string>;
   /** Extra options for every `fetch` call (for example `keepalive` in the browser); the SDK's own fields always win. */
   fetchOptions?: Record<string, unknown>;
+  /** Set to false to make a single attempt even on network errors, timeouts or 5xx. Defaults to true. */
+  retry?: boolean;
 }
 
 export interface ClientOptions extends TransportOptions {
@@ -130,6 +132,7 @@ export class Transport {
   private readonly scheduler: Scheduler;
   private readonly headers: Record<string, string>;
   private readonly fetchOptions: Record<string, unknown>;
+  private readonly retry: boolean;
   private readonly guarded: <T>(run: () => T) => T;
 
   constructor(url: string, key: string, options: TransportOptions = {}, guarded: <T>(run: () => T) => T = (run) => run()) {
@@ -141,6 +144,7 @@ export class Transport {
     this.scheduler = options.scheduler ?? defaultScheduler;
     this.headers = options.headers ?? {};
     this.fetchOptions = options.fetchOptions ?? {};
+    this.retry = options.retry !== false;
     this.guarded = guarded;
   }
 
@@ -151,7 +155,7 @@ export class Transport {
       const startedAt = this.now();
       let result = await this.attempt(payload, this.timeout, 1);
 
-      if (this.isTransient(result)) {
+      if (this.retry && this.isTransient(result)) {
         const remaining = BUDGET_SECONDS - (this.now() - startedAt) / 1000;
 
         if (remaining >= MIN_RETRY_SECONDS) {
