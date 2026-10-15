@@ -10,6 +10,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": ["node"],
+    "paths": { "@ascariodev/sereno-core": ["./packages/core/src/index.ts"] },
     "noEmit": true
   },
   "include": ["packages/*/src", "packages/*/test"]
