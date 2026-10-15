@@ -18,6 +18,16 @@
         "default": "./dist/cjs/index.js"
       }
     },
+    "./express": {
+      "import": {
+        "types": "./dist/esm/express.d.ts",
+        "default": "./dist/esm/express.js"
+      },
+      "require": {
+        "types": "./dist/cjs/express.d.ts",
+        "default": "./dist/cjs/express.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -33,5 +43,24 @@
   },
   "dependencies": {
     "@ascariodev/sereno-core": "^0.1.0"
+  },
+  "typesVersions": {
+    "*": {
+      "express": [
+        "./dist/esm/express.d.ts"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "express": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "express": "^5.3.0"
   }
 }
