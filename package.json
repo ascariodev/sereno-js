@@ -1,0 +1,23 @@
+{
+  "name": "sereno-js",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "packages/core",
+    "packages/node",
+    "packages/browser"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.12"
+  }
+}

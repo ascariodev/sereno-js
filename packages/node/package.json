@@ -1,0 +1,121 @@
+{
+  "name": "@ascariodev/sereno-node",
+  "version": "0.1.0",
+  "description": "Sereno SDK for Node.js.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./express": {
+      "import": {
+        "types": "./dist/esm/express.d.ts",
+        "default": "./dist/esm/express.js"
+      },
+      "require": {
+        "types": "./dist/cjs/express.d.ts",
+        "default": "./dist/cjs/express.js"
+      }
+    },
+    "./nest": {
+      "import": {
+        "types": "./dist/esm/nest.d.ts",
+        "default": "./dist/esm/nest.js"
+      },
+      "require": {
+        "types": "./dist/cjs/nest.d.ts",
+        "default": "./dist/cjs/nest.js"
+      }
+    },
+    "./next": {
+      "import": {
+        "types": "./dist/esm/next.d.ts",
+        "default": "./dist/esm/next.js"
+      },
+      "require": {
+        "types": "./dist/cjs/next.d.ts",
+        "default": "./dist/cjs/next.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "sereno-node": "./dist/esm/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ascariodev/sereno-core": "^0.1.0"
+  },
+  "typesVersions": {
+    "*": {
+      "express": [
+        "./dist/esm/express.d.ts"
+      ],
+      "nest": [
+        "./dist/esm/nest.d.ts"
+      ],
+      "next": [
+        "./dist/esm/next.d.ts"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "express": ">=4",
+    "@nestjs/common": ">=9",
+    "@nestjs/core": ">=9",
+    "reflect-metadata": ">=0.1.12",
+    "rxjs": ">=7",
+    "next": ">=15"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "@nestjs/common": {
+      "optional": true
+    },
+    "@nestjs/core": {
+      "optional": true
+    },
+    "reflect-metadata": {
+      "optional": true
+    },
+    "rxjs": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
+    "@types/express": "^5.0.6",
+    "express": "^5.3.0",
+    "next": "^16.4.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  }
+}
