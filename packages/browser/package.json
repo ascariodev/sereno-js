@@ -18,7 +18,24 @@
         "default": "./dist/cjs/index.js"
       }
     },
+    "./vue": {
+      "import": {
+        "types": "./dist/esm/vue.d.ts",
+        "default": "./dist/esm/vue.js"
+      },
+      "require": {
+        "types": "./dist/cjs/vue.d.ts",
+        "default": "./dist/cjs/vue.js"
+      }
+    },
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "vue": [
+        "./dist/esm/vue.d.ts"
+      ]
+    }
   },
   "files": [
     "dist"
@@ -34,7 +51,16 @@
   "dependencies": {
     "@ascariodev/sereno-core": "^0.1.0"
   },
+  "peerDependencies": {
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "jsdom": "^30.1.3"
+    "jsdom": "^30.1.3",
+    "vue": "^3.5.44"
   }
 }
