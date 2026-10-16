@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "Sereno SDK for Node.js.",
   "license": "MIT",
+  "homepage": "https://github.com/ascariodev/sereno-js/tree/main/packages/node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ascariodev/sereno-js.git",
+    "directory": "packages/node"
+  },
+  "bugs": {
+    "url": "https://github.com/ascariodev/sereno-js/issues"
+  },
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -117,5 +126,8 @@
     "next": "^16.4.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

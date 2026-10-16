@@ -1,0 +1,47 @@
+name: Publish
+
+on:
+  push:
+    tags: ['core-v*', 'node-v*', 'browser-v*']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Resolve package from tag
+        id: pkg
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          dir="packages/${tag%%-v*}"
+          version="${tag#*-v}"
+          name=$(node -p "require('./$dir/package.json').name")
+          actual=$(node -p "require('./$dir/package.json').version")
+          if [ "$actual" != "$version" ]; then
+            echo "Tag $tag does not match $name@$actual" >&2
+            exit 1
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "spec=$name@$version" >> "$GITHUB_OUTPUT"
+          # A version published by hand (the first one of each package) is skipped instead of failing.
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+      - run: npm ci
+        if: steps.pkg.outputs.published != 'true'
+      - run: npm run typecheck
+        if: steps.pkg.outputs.published != 'true'
+      - run: npm run build
+        if: steps.pkg.outputs.published != 'true'
+      - run: npm test
+        if: steps.pkg.outputs.published != 'true'
+      - run: npm publish -w ${{ steps.pkg.outputs.dir }}
+        if: steps.pkg.outputs.published != 'true'

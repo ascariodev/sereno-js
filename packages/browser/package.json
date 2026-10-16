@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "Sereno SDK for the browser.",
   "license": "MIT",
+  "homepage": "https://github.com/ascariodev/sereno-js/tree/main/packages/browser#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ascariodev/sereno-js.git",
+    "directory": "packages/browser"
+  },
+  "bugs": {
+    "url": "https://github.com/ascariodev/sereno-js/issues"
+  },
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -83,5 +92,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "vue": "^3.5.44"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
