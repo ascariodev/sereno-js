@@ -43,6 +43,8 @@ function vueContext(instance: unknown, info: unknown): Record<string, unknown> {
   return context;
 }
 
+const handlersBeforeSereno = new WeakMap<VueErrorHandler, VueErrorHandler | null | undefined>();
+
 function logToConsole(error: unknown): void {
   try {
     (globalThis as unknown as { console?: { error(value: unknown): void } }).console?.error(error);
@@ -64,9 +66,10 @@ export const SerenoVue = {
         client = init(options.init);
       }
 
-      const previous = app.config.errorHandler;
+      const current = app.config.errorHandler;
+      const previous = current && handlersBeforeSereno.has(current) ? handlersBeforeSereno.get(current) : current;
 
-      app.config.errorHandler = (error, instance, info) => {
+      const handler: VueErrorHandler = (error, instance, info) => {
         try {
           const target = client ?? getClient();
 
@@ -83,6 +86,9 @@ export const SerenoVue = {
           logToConsole(error);
         }
       };
+
+      handlersBeforeSereno.set(handler, previous);
+      app.config.errorHandler = handler;
     } catch {
       // installing the plugin must never break the app
     }

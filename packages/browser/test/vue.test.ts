@@ -134,6 +134,21 @@ describe('SerenoVue', () => {
     expect(events).toHaveLength(0);
   });
 
+  it('captures once and calls the previous handler once when installed twice in the same app', async () => {
+    init(options());
+    const previous = vi.fn();
+
+    mount(Exploding, (app) => {
+      app.config.errorHandler = previous;
+      app.use(SerenoVue);
+      SerenoVue.install(app);
+    });
+    await flush();
+
+    expect(events).toHaveLength(1);
+    expect(previous).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the main entry free of vue', () => {
     for (const file of ['../src/index.ts', '../src/global.ts']) {
       const source = readFileSync(new URL(file, import.meta.url), 'utf8');
