@@ -60,6 +60,19 @@ function rejectedValue(error: unknown, origin: string): unknown {
  */
 export function installProcessHandlers(client: Client, waitMs: number = SHUTDOWN_WAIT_MS): () => void {
   let dying = false;
+  const captured = new WeakSet<object>();
+
+  const captureOnce = (value: unknown): void => {
+    if (typeof value === 'object' && value !== null) {
+      if (captured.has(value)) {
+        return;
+      }
+
+      captured.add(value);
+    }
+
+    capture(client, value);
+  };
 
   const onUncaught = (error: unknown, origin: string): void => {
     try {
@@ -67,7 +80,7 @@ export function installProcessHandlers(client: Client, waitMs: number = SHUTDOWN
         return;
       }
 
-      capture(client, rejectedValue(error, origin));
+      captureOnce(rejectedValue(error, origin));
 
       if (process.listenerCount('uncaughtException') > 1) {
         void client.flush();
@@ -85,7 +98,7 @@ export function installProcessHandlers(client: Client, waitMs: number = SHUTDOWN
 
   const mode = rejectionMode();
   const onRejection = (reason: unknown): void => {
-    capture(client, reason);
+    captureOnce(reason);
 
     if (mode === 'warn-with-error-code' && process.listenerCount('unhandledRejection') === 1) {
       process.exitCode = 1;
