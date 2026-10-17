@@ -172,8 +172,10 @@ app.useGlobalFilters(new SerenoExceptionFilter(app.get(HttpAdapterHost).httpAdap
 ```
 
 The filter captures the exception and then answers exactly as Nest would. `HttpException`s with a status below 500 are
-not captured. In HTTP the context carries only `method` and `route`. Microservice (`rpc`) and WebSocket (`ws`)
-exceptions are captured too, without context, and answered like Nest's defaults. It is tested with the Express
+not captured, and neither are `RpcException` and `WsException` (matched by class name, so `@nestjs/microservices` and
+`@nestjs/websockets` stay optional): they are usually expected client errors. In HTTP the context carries only `method`
+and `route`. Any other error in microservice (`rpc`) and WebSocket (`ws`) handlers is captured, without context, and
+every exception is answered like Nest's defaults. It is tested with the Express
 platform; Fastify is not tested.
 
 ## Next.js

@@ -155,6 +155,14 @@ class RpcException extends Error {
 
 class WsException extends RpcException {}
 
+class CustomRpcException extends RpcException {}
+
+class LookalikeError extends Error {
+  getError(): unknown {
+    return 'nope';
+  }
+}
+
 function fakeHost(type: string, emit?: (event: string, payload: unknown) => void): ArgumentsHost {
   const ws = { getClient: () => ({ emit }), getData: () => ({ id: 1 }), getPattern: () => 'join' };
 
@@ -165,7 +173,7 @@ describe('SerenoExceptionFilter outside HTTP', () => {
   beforeEach(() => Logger.overrideLogger(false));
   afterEach(() => Logger.overrideLogger(['log', 'error', 'warn', 'debug', 'verbose']));
 
-  it('rpc: captures and returns the error observable of BaseRpcExceptionFilter', async () => {
+  it('rpc: captures only unexpected errors and returns the error observable of BaseRpcExceptionFilter', async () => {
     const filter = new SerenoExceptionFilter();
 
     await expect(firstValueFrom(filter.catch(new Error('rpc boom'), fakeHost('rpc')) as Observable<never>)).rejects.toEqual({
@@ -179,11 +187,11 @@ describe('SerenoExceptionFilter outside HTTP', () => {
     await expect(firstValueFrom(filter.catch(new RpcException({ code: 7 }), fakeHost('rpc')) as Observable<never>)).rejects.toEqual({ code: 7 });
     await flush();
 
-    expect(events.map((event) => event.message)).toEqual(['rpc boom', 'denied', 'Rpc Exception']);
+    expect(events.map((event) => event.message)).toEqual(['rpc boom']);
     expect(events[0]?.context).not.toHaveProperty('route');
   });
 
-  it('ws: captures and emits what BaseWsExceptionFilter emits', async () => {
+  it('ws: captures only unexpected errors and emits what BaseWsExceptionFilter emits', async () => {
     const emitted: unknown[] = [];
     const host = fakeHost('ws', (event, payload) => emitted.push([event, payload]));
     const filter = new SerenoExceptionFilter();
@@ -199,6 +207,23 @@ describe('SerenoExceptionFilter outside HTTP', () => {
       ['exception', { status: 'error', message: 'forbidden', cause: { pattern: 'join', data: { id: 1 } } }],
       ['exception', { code: 9 }],
     ]);
-    expect(events.map((event) => event.message)).toEqual(['ws boom', 'forbidden', 'Rpc Exception', 'no emit']);
+    expect(events.map((event) => event.message)).toEqual(['ws boom', 'no emit']);
+  });
+
+  it('does not capture RpcException, WsException or their subclasses, but captures lookalikes', async () => {
+    const filter = new SerenoExceptionFilter();
+    const host = fakeHost('ws', () => undefined);
+
+    filter.catch(new RpcException('a'), host);
+    filter.catch(new WsException('b'), host);
+    filter.catch(new CustomRpcException('c'), host);
+    await expect(firstValueFrom(filter.catch(new CustomRpcException('d'), fakeHost('rpc')) as Observable<never>)).rejects.toEqual({
+      status: 'error',
+      message: 'd',
+    });
+    filter.catch(new LookalikeError('lookalike'), host);
+    await flush();
+
+    expect(events.map((event) => event.message)).toEqual(['lookalike']);
   });
 });
