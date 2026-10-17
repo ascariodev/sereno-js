@@ -85,6 +85,15 @@ describe('testConnection', () => {
     expect(result.detail).toBeTruthy();
   });
 
+  it('redacts the key and the URL userinfo from the failure detail', async () => {
+    const fetch = async () => {
+      throw new Error('boom Bearer wsk_secret at http://user:pass@127.0.0.1:1/x');
+    };
+    const result = await testConnection('http://user:pass@127.0.0.1:1', 'wsk_secret', { fetch });
+
+    expect(result).toEqual({ status: 'failed', detail: 'boom *** at http://127.0.0.1:1/x' });
+  });
+
   it('times out after 5 seconds with a single attempt', async () => {
     const url = await serve(() => undefined);
     const startedAt = Date.now();

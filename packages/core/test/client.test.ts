@@ -6,6 +6,7 @@ import {
   Transport,
   normalizeLevel,
   normalizeTimeout,
+  redact,
   type ClientOptions,
   type FetchInit,
   type FetchLike,
@@ -574,7 +575,7 @@ describe('Transport budget and resilience', () => {
     console.error = (message: unknown) => void lines.push(message);
 
     try {
-      const client = new Client({ url, key: 'k', fetch: failing });
+      const client = new Client({ url, key: 'wsk_test', fetch: failing });
       client.log({ level: 'error', message: 'x' });
       await client.flush();
     } finally {
@@ -582,5 +583,36 @@ describe('Transport budget and resilience', () => {
     }
 
     expect(lines).toEqual(['Sereno log delivery failed: error=network down events=1']);
+  });
+});
+
+describe('Transport error redaction', () => {
+  it('redacts the key from a network error message', async () => {
+    const fetch: FetchLike = async () => {
+      throw new Error('failed with Bearer wsk_secret and wsk_secret');
+    };
+    const result = await new Transport(url, 'wsk_secret', { retry: false, fetch }).send([]);
+
+    expect(result).toMatchObject({ status: 'error', error: 'failed with *** and ***' });
+  });
+
+  it('redacts a key with an inner line break, raw and escaped', async () => {
+    const key = 'wsk_a\nb';
+    const fetch: FetchLike = async () => {
+      throw new Error(`raw ${key} escaped wsk_a\\nb`);
+    };
+    const result = await new Transport(url, key, { retry: false, fetch }).send([]);
+
+    expect(result).toMatchObject({ status: 'error', error: 'raw *** escaped ***' });
+  });
+
+  it('drops userinfo from URLs in the error message', async () => {
+    const fetch: FetchLike = async () => {
+      throw new Error('connect to http://user:pass@example.test/api failed');
+    };
+    const result = await new Transport('http://user:pass@example.test', 'k', { retry: false, fetch }).send([]);
+
+    expect(result).toMatchObject({ status: 'error', error: 'connect to http://example.test/api failed' });
+    expect(redact('see https://u@h/x and https://h/a@b', '')).toBe('see https://h/x and https://h/a@b');
   });
 });

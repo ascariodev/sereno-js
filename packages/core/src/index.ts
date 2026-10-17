@@ -12,6 +12,7 @@ export {
   defaultScheduler,
   normalizeLevel,
   normalizeTimeout,
+  redact,
 } from './client.js';
 export type {
   ClientOptions,

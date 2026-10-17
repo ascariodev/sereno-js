@@ -123,6 +123,23 @@ function errorMessage(error: unknown): string {
   }
 }
 
+const USERINFO = /(?<=\/\/)[^/\s@]*@/g;
+
+/** Replaces each secret (also as `Bearer <secret>` and in escaped form) with `***` and drops URL userinfo. */
+export function redact(text: string, ...secrets: string[]): string {
+  let result = text;
+
+  for (const secret of secrets.filter((value) => value !== '').sort((a, b) => b.length - a.length)) {
+    const escaped = JSON.stringify(secret).slice(1, -1);
+
+    for (const variant of new Set([`Bearer ${secret}`, `Bearer ${escaped}`, secret, escaped])) {
+      result = result.split(variant).join('***');
+    }
+  }
+
+  return result.replace(USERINFO, '');
+}
+
 export class Transport {
   readonly endpoint: string;
   readonly timeout: number;
@@ -165,7 +182,7 @@ export class Transport {
 
       return result;
     } catch (error) {
-      return { status: 'error', error: errorMessage(error), transient: false, attempts: 0 };
+      return { status: 'error', error: redact(errorMessage(error), this.key), transient: false, attempts: 0 };
     }
   }
 
@@ -211,7 +228,7 @@ export class Transport {
 
       return { status: 'rejected', code: response.status, body, attempts };
     } catch (error) {
-      return { status: 'error', error: errorMessage(error), transient: !(error instanceof FetchUnavailableError), attempts };
+      return { status: 'error', error: redact(errorMessage(error), this.key), transient: !(error instanceof FetchUnavailableError), attempts };
     } finally {
       if (handle !== undefined) {
         this.scheduler.clear(handle);
