@@ -27,9 +27,9 @@ port: the origin must match the port the dev server actually uses). The dialog s
 key (`wsp_...`) only once; if you lose it, rotate the key.
 
 A browser key is public: it ships in your JavaScript bundle and anyone can read it. What protects it is that Sereno
-accepts it only from the listed origins (the `Origin` header the browser sends) and at most 30 requests per minute per
-IP and source. Never put a server key (`wsk_...`) in front-end code: it would be accepted from any origin and anyone
-could send events with it.
+accepts it only from the listed origins (the `Origin` header the browser sends), at most 30 requests per minute per
+IP and source and 120 per minute per source. Never put a server key (`wsk_...`) in front-end code: Sereno rejects a
+server key sent with an `Origin` header (403), but the key is still exposed and anyone could use it from a server.
 
 ## Quick start
 
@@ -147,7 +147,7 @@ The context carries `component` (the component `name`, or the file name for `<sc
 import { SerenoErrorBoundary } from '@ascariodev/sereno-browser/react';
 
 <SerenoErrorBoundary
-  fallback={({ error, reset }) => (
+  fallback={({ reset }) => (
     <div>
       <p>Something went wrong.</p>
       <button onClick={reset}>Try again</button>
@@ -162,7 +162,9 @@ import { SerenoErrorBoundary } from '@ascariodev/sereno-browser/react';
 and renders `fallback`: a node (`fallback={<p>Oops</p>}`) or a function of `{ error, reset }`. `reset()` clears the
 error and renders the children again. Without `fallback` it renders nothing after an error. Other props: `onError(error,
 info)` is called after the error is sent (what it throws is ignored), and `client` sends to a client of your own instead
-of the active one. With TypeScript, install `@types/react`.
+of the active one. Before `init` (or without `client`) the boundary sends nothing, but it still catches the error and
+renders `fallback`. With TypeScript, install `@types/react`. Tested with React 19.3 (the `react` devDependency of this
+package); React 18 is in the peer range but not tested yet.
 
 As with any React error boundary, errors in event handlers, timers and promises are not caught by it; the global
 listeners above capture them.
