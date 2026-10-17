@@ -203,6 +203,14 @@ Stack traces of minified bundles point to the minified files; source maps are no
   with the status or error is written with `console.error` (never the key). What the SDK logs or triggers while it is
   sending is ignored, so a failure can never loop.
 
+The keepalive budget is applied when a batch leaves the page during the exit, and the notice about cut events is
+printed at that moment. A batch that exceeds the budget is cut: the leading events that fit are sent with keepalive,
+the rest are dropped, and one notice reports how many. For `flush()`, a cut batch counts all its events as `sent` when
+the request carrying the kept events succeeds, because the batch was delivered as a whole. A batch where no event fits
+is answered with a 413 without leaving the page and counts as `failed`. The `dropped` field of the result only counts
+events refused by the buffer limit, not the ones cut here. The flush started on exit is not awaited by the SDK, so its
+result is seen only when you call `flush()` yourself.
+
 ## Troubleshooting
 
 - **401 Unauthorized** (in the console as `Sereno log delivery failed: status=401`): Sereno answers the same 401 for
