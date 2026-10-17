@@ -19,6 +19,11 @@ if (process.env.SCENARIO === 'app-rejection') {
   process.on('unhandledRejection', () => { console.log('app saw rejection'); });
 }
 
+if (process.env.SCENARIO === 'strict-both') {
+  process.on('uncaughtException', () => { console.log('app saw uncaught'); });
+  process.on('unhandledRejection', () => { console.log('app saw rejection'); });
+}
+
 if (!process.env.NO_SDK) init();
 
 switch (process.env.SCENARIO) {
@@ -45,6 +50,10 @@ switch (process.env.SCENARIO) {
     break;
   case 'app-rejection':
     Promise.reject(new Error('app rejection'));
+    break;
+  case 'strict-both':
+    Promise.reject(new Error('twice'));
+    setTimeout(() => {}, 100);
     break;
   case 'before-exit':
     captureException(new Error('at exit'));
@@ -241,6 +250,13 @@ describe('unhandled rejections', () => {
 
     expect(without.code).toBe(1);
     expect(events.map((event) => event.message)).toEqual(['warned']);
+  });
+
+  it('captures once in strict mode when the application listens to both uncaughtException and unhandledRejection', async () => {
+    const { withSdk } = await compare('strict-both', { nodeArgs: ['--unhandled-rejections=strict'] });
+
+    expect(withSdk.code).toBe(0);
+    expect(events.map((event) => event.message)).toEqual(['twice']);
   });
 
   it('captures a rejection the application handles with a hook registered before init', async () => {

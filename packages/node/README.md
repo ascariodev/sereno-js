@@ -119,6 +119,8 @@ app.listen(3000);
 
 The middleware captures the error and passes it on with `next(error)`, so Express still builds the response. It
 ignores errors whose `status` or `statusCode` is below 500 (change it with `expressErrorHandler({ minStatus: 400 })`).
+The status is resolved as Express does: the error's `status`, then `statusCode`, then the response status, each only if
+it is 400-599, otherwise 500. So an error with status 200 is captured.
 The context carries only `method` and `route`: the route pattern such as `/users/:id` when matched, otherwise the path;
 never the query string, headers or body.
 
@@ -170,14 +172,16 @@ app.useGlobalFilters(new SerenoExceptionFilter(app.get(HttpAdapterHost).httpAdap
 ```
 
 The filter captures the exception and then answers exactly as Nest would. `HttpException`s with a status below 500 are
-not captured. In HTTP the context carries only `method` and `route`. Microservice (`rpc`) and WebSocket (`ws`)
-exceptions are captured too, without context, and answered like Nest's defaults. It is tested with the Express
+not captured, and neither are `RpcException` and `WsException` (matched by class name, so `@nestjs/microservices` and
+`@nestjs/websockets` stay optional): they are usually expected client errors. In HTTP the context carries only `method`
+and `route`. Any other error in microservice (`rpc`) and WebSocket (`ws`) handlers is captured, without context, and
+every exception is answered like Nest's defaults. It is tested with the Express
 platform; Fastify is not tested.
 
 ## Next.js
 
-Next.js 15 or newer, App Router. Create `instrumentation.ts` at the root of the project (or in `src/`) and re-export
-the hooks:
+Next.js 15 or newer, App Router or Pages Router. Create `instrumentation.ts` at the root of the project (or in `src/`)
+and re-export the hooks:
 
 ```ts
 export { register, onRequestError } from '@ascariodev/sereno-node/next';
@@ -187,8 +191,8 @@ Set `SERENO_URL` and `SERENO_KEY` in the server environment. Notes:
 
 - `register` is `async` and initializes the SDK only in the Node.js runtime. In the `edge` runtime it does nothing
   (the Node modules are never loaded there). It does not reinitialize a client created earlier with `init`.
-- `onRequestError` captures errors from Server Components, route handlers and server actions, waits for the event to
-  be sent (at most 10 seconds) and never throws. Redirects, `notFound()` and other control-flow errors are ignored.
+- `onRequestError` captures errors from Server Components, route handlers, server actions and, in the Pages Router,
+  API routes and `getServerSideProps`; it waits for the event to be sent (at most 10 seconds) and never throws. Redirects, `notFound()` and other control-flow errors are ignored.
   The context carries `method`, `route` (the route pattern such as `/api/users/[id]`), `routeType`, `routerKind` and
   `renderSource`; never the path, query, headers or body.
 - Different options: write your own file with `import { register as base, createOnRequestError } from
@@ -196,7 +200,8 @@ Set `SERENO_URL` and `SERENO_KEY` in the server environment. Notes:
   createOnRequestError({ minStatus: 400 })`.
 - Inside Next, if you do not want the process handlers (Next manages its own), use
   `register({ handlers: false })` through the custom file above.
-- Client-side errors are not captured here. The Pages Router and the development server are not tested.
+- Client-side errors are not captured here. The SDK has no development-specific logic, so `next dev` uses the same
+  hooks; it is not tested against a real `next dev` server.
 
 ## Configuration
 

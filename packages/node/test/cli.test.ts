@@ -85,6 +85,15 @@ describe('testConnection', () => {
     expect(result.detail).toBeTruthy();
   });
 
+  it('redacts the key and the URL userinfo from the failure detail', async () => {
+    const fetch = async () => {
+      throw new Error('boom Bearer wsk_secret at http://user:pass@127.0.0.1:1/x');
+    };
+    const result = await testConnection('http://user:pass@127.0.0.1:1', 'wsk_secret', { fetch });
+
+    expect(result).toEqual({ status: 'failed', detail: 'boom *** at http://127.0.0.1:1/x' });
+  });
+
   it('times out after 5 seconds with a single attempt', async () => {
     const url = await serve(() => undefined);
     const startedAt = Date.now();
@@ -148,6 +157,54 @@ describe('runCli', () => {
     const unknown = io();
     expect(await runCli([], unknown.io)).toBe(1);
     expect(unknown.lines.join('')).toContain('Usage: sereno-node test');
+  });
+
+  describe('key never reaches the output', () => {
+    const key = 'wsk_test_secret_0123456789';
+
+    function split() {
+      const out: string[] = [];
+      const err: string[] = [];
+
+      return { out, err, io: { env: {}, out: (text: string) => out.push(text), err: (text: string) => err.push(text) } };
+    }
+
+    it('does not print the --key value when the event is sent', async () => {
+      const url = await serve(status(202));
+      const streams = split();
+
+      expect(await runCli(['test', `--url=${url}`, '--key', key], streams.io)).toBe(0);
+      expect(requests[0]!.headers.authorization).toBe(`Bearer ${key}`);
+      expect(streams.out.join('') + streams.err.join('')).not.toContain(key);
+      expect(streams.out.join('')).not.toContain('wsk_test');
+    });
+
+    it('does not print the --key=value form on a rejected key', async () => {
+      const url = await serve(status(401));
+      const streams = split();
+
+      expect(await runCli(['test', `--url=${url}`, `--key=${key}`], streams.io)).toBe(1);
+      expect(streams.out.join('') + streams.err.join('')).not.toContain(key);
+    });
+
+    it('does not print the key when the send fails with a network error', async () => {
+      const streams = split();
+
+      expect(await runCli(['test', '--url=http://127.0.0.1:1', '--key', key], streams.io)).toBe(1);
+      expect(streams.out.join('')).toContain('Failed:');
+      expect(streams.out.join('') + streams.err.join('')).not.toContain(key);
+    });
+
+    it('does not print the key with --help or on usage errors', async () => {
+      const help = split();
+      expect(await runCli(['test', '--key', key, '--help'], help.io)).toBe(0);
+      expect(help.out.join('')).toContain('Usage: sereno-node test');
+      expect(help.out.join('') + help.err.join('')).not.toContain(key);
+
+      const usage = split();
+      expect(await runCli(['--key', key], usage.io)).toBe(1);
+      expect(usage.out.join('') + usage.err.join('')).not.toContain(key);
+    });
   });
 });
 

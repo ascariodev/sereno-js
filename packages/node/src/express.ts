@@ -11,24 +11,32 @@ export interface ExpressRequestLike {
 
 export interface ExpressResponseLike {
   headersSent?: boolean;
+  statusCode?: number;
 }
 
 export type ExpressErrorHandler = (error: unknown, request: ExpressRequestLike, response: ExpressResponseLike, next: (error?: unknown) => void) => void;
 
 export interface ExpressErrorHandlerOptions {
-  /** Errors whose `status`/`statusCode` is below this value are not captured. Defaults to 500. */
+  /** Errors whose `status`/`statusCode` is below this value are not captured. Defaults to 500. Resolved as Express does: the error's `status`, then `statusCode`, then the response status, each only if 400-599, otherwise 500. */
   minStatus?: number;
 }
 
-function statusOf(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null) {
-    return undefined;
+function inErrorRange(value: unknown): value is number {
+  return typeof value === 'number' && value >= 400 && value <= 599;
+}
+
+function statusOf(error: unknown, response: ExpressResponseLike): number {
+  const { status, statusCode } = (typeof error === 'object' && error !== null ? error : {}) as { status?: unknown; statusCode?: unknown };
+
+  if (inErrorRange(status)) {
+    return status;
   }
 
-  const { status, statusCode } = error as { status?: unknown; statusCode?: unknown };
-  const value = typeof status === 'number' ? status : statusCode;
+  if (inErrorRange(statusCode)) {
+    return statusCode;
+  }
 
-  return typeof value === 'number' ? value : undefined;
+  return inErrorRange(response.statusCode) ? response.statusCode : 500;
 }
 
 function routeOf(request: ExpressRequestLike): string {
@@ -45,12 +53,12 @@ function routeOf(request: ExpressRequestLike): string {
 export function expressErrorHandler(options: ExpressErrorHandlerOptions = {}): ExpressErrorHandler {
   const minStatus = options.minStatus ?? 500;
 
-  return (error, request, _response, next) => {
+  return (error, request, response, next) => {
     try {
       const client = getClient();
-      const status = statusOf(error);
+      const status = statusOf(error, response);
 
-      if (client && (status === undefined || status >= minStatus)) {
+      if (client && status >= minStatus) {
         capture(client, error, { method: request.method, route: routeOf(request) });
       }
     } catch {

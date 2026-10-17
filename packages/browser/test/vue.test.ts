@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createApp, defineComponent, h } from 'vue';
+import { createApp, defineComponent, h, Suspense } from 'vue';
 import type { Component } from 'vue';
 import type { FetchInit, SerenoEvent } from '@ascariodev/sereno-core';
 import { BrowserClient, close, flush, getClient, init } from '../src/index.js';
@@ -23,6 +23,14 @@ function options(): InitOptions {
     },
   };
 }
+
+const AsyncExploding = defineComponent({
+  name: 'AsyncExploding',
+  async setup() {
+    throw new Error('async setup failed');
+  },
+  render: () => h('div'),
+});
 
 const Exploding = defineComponent({
   name: 'Exploding',
@@ -134,11 +142,66 @@ describe('SerenoVue', () => {
     expect(events).toHaveLength(0);
   });
 
+  it('captures once and calls the previous handler once when installed twice in the same app', async () => {
+    init(options());
+    const previous = vi.fn();
+
+    mount(Exploding, (app) => {
+      app.config.errorHandler = previous;
+      app.use(SerenoVue);
+      SerenoVue.install(app);
+    });
+    await flush();
+
+    expect(events).toHaveLength(1);
+    expect(previous).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the main entry free of vue', () => {
     for (const file of ['../src/index.ts', '../src/global.ts']) {
       const source = readFileSync(new URL(file, import.meta.url), 'utf8');
 
       expect(source).not.toMatch(/from '(vue|\.\/vue\.js)'/);
     }
+  });
+  it('sends the setup error once when the previous handler throws and lets its error reach Vue', async () => {
+    init(options());
+    const previous = vi.fn(() => {
+      throw new Error('previous handler failed');
+    });
+
+    expect(() =>
+      mount(Exploding, (app) => {
+        app.config.errorHandler = previous;
+        app.use(SerenoVue);
+      }),
+    ).toThrow('previous handler failed');
+    await flush();
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ message: 'setup failed' });
+    expect(previous).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends an async setup error through Suspense with component and hook', async () => {
+    init(options());
+    const previous = vi.fn();
+    const app = createApp({ render: () => h(Suspense, null, { default: () => h(AsyncExploding, { secret: 'do-not-send' }) }) });
+    app.config.errorHandler = previous;
+    app.use(SerenoVue);
+    const document = (globalThis as unknown as { document: { createElement(tag: string): object } }).document;
+    app.mount(document.createElement('div') as never);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flush();
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      level: 'error',
+      message: 'async setup failed',
+      context: { component: 'AsyncExploding', info: 'setup function' },
+    });
+    expect(JSON.stringify(events[0])).not.toContain('do-not-send');
+    expect(previous).toHaveBeenCalledTimes(1);
+    app.unmount();
   });
 });

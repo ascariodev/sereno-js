@@ -1498,5 +1498,336 @@
                 "_truncated": true
             }
         }
+    },
+    {
+        "name": "context excepción anidada en profundidad 7",
+        "input": {
+            "level": "error",
+            "time": "2026-01-02T03:04:05.123456+00:00",
+            "message": "m",
+            "context": {
+                "l1": {
+                    "l2": {
+                        "l3": {
+                            "l4": {
+                                "l5": {
+                                    "l6": {
+                                        "l7": {
+                                            "$exception": {
+                                                "class": "RuntimeException",
+                                                "message": "boom",
+                                                "file": "/app/src/Deep.php",
+                                                "line": 7
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": {
+            "level": "error",
+            "message": "m",
+            "occurred_at": "2026-01-02T03:04:05.123Z",
+            "context": {
+                "l1": {
+                    "l2": {
+                        "l3": {
+                            "l4": {
+                                "l5": {
+                                    "l6": {
+                                        "l7": {
+                                            "class": "RuntimeException",
+                                            "message": "boom",
+                                            "location": "/app/src/Deep.php:7",
+                                            "trace": "<trace>"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "name": "context excepción anidada en profundidad 8",
+        "input": {
+            "level": "error",
+            "time": "2026-01-02T03:04:05.123456+00:00",
+            "message": "m",
+            "context": {
+                "l1": {
+                    "l2": {
+                        "l3": {
+                            "l4": {
+                                "l5": {
+                                    "l6": {
+                                        "l7": {
+                                            "l8": {
+                                                "$exception": {
+                                                    "class": "RuntimeException",
+                                                    "message": "boom",
+                                                    "file": "/app/src/Deep.php",
+                                                    "line": 7
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "expected": {
+            "level": "error",
+            "message": "m",
+            "occurred_at": "2026-01-02T03:04:05.123Z",
+            "context": {
+                "l1": {
+                    "l2": {
+                        "l3": {
+                            "l4": {
+                                "l5": {
+                                    "l6": {
+                                        "l7": {
+                                            "l8": "[truncated]"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "_truncated": true
+            }
+        }
+    },
+    {
+        "name": "tamaño con valor no string",
+        "input": {
+            "level": "error",
+            "time": "2026-01-02T03:04:05.123456+00:00",
+            "message": "m",
+            "context": {
+                "k01": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k02": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k03": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k04": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k05": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k06": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k07": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k08": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k09": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k10": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k11": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k12": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k13": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k14": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k15": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "big": [
+                    {
+                        "$repeat": [
+                            "a",
+                            2000
+                        ]
+                    },
+                    {
+                        "$repeat": [
+                            "a",
+                            2000
+                        ]
+                    },
+                    {
+                        "$repeat": [
+                            "a",
+                            2000
+                        ]
+                    }
+                ],
+                "last": 1
+            }
+        },
+        "expected": {
+            "level": "error",
+            "message": "m",
+            "occurred_at": "2026-01-02T03:04:05.123Z",
+            "context": {
+                "k01": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k02": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k03": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k04": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k05": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k06": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k07": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k08": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k09": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k10": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k11": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k12": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k13": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k14": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "k15": {
+                    "$repeat": [
+                        "a",
+                        2000
+                    ]
+                },
+                "big": "[truncated]",
+                "last": 1,
+                "_truncated": true
+            }
+        }
     }
 ]

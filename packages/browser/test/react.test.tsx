@@ -86,7 +86,7 @@ describe('SerenoErrorBoundary', () => {
     expect(onError.mock.calls[0]?.[1]).toHaveProperty('componentStack');
   });
 
-  it('sends a single event when the caught error also reaches window error (React 18 dev)', async () => {
+  it('deduplicates a window error for the same error that the boundary already sent', async () => {
     const scope = globalThis as unknown as { addEventListener(type: string, listener: () => void): void; removeEventListener(type: string, listener: () => void): void };
     let windowErrors = 0;
     const countWindowError = () => {
@@ -107,6 +107,7 @@ describe('SerenoErrorBoundary', () => {
     await flush();
     scope.removeEventListener('error', countWindowError);
 
+    // React 19 only: React 18 dev dispatches the window error during render
     expect(reactWindowErrors).toBe(0);
     expect(windowErrors).toBe(1);
     expect(events).toHaveLength(1);
@@ -140,6 +141,44 @@ describe('SerenoErrorBoundary', () => {
 
     expect(container.textContent).toBe('child ok');
     await flush();
+    expect(events).toHaveLength(1);
+  });
+
+  it('hands an error thrown by the fallback to the parent boundary', async () => {
+    init(options());
+
+    render(
+      <SerenoErrorBoundary fallback={<p>outer fallback</p>}>
+        <SerenoErrorBoundary
+          fallback={() => {
+            throw new Error('fallback failed');
+          }}
+        >
+          <Exploding />
+        </SerenoErrorBoundary>
+      </SerenoErrorBoundary>,
+    );
+    await flush();
+
+    expect(container.textContent).toBe('outer fallback');
+    // React 19: the original error is not reported; React 18 also sends 'render failed'
+    expect(events.map((event) => event.message)).toEqual(['fallback failed']);
+  });
+
+  it('shows the fallback again and calls onError again when reset and the child still fails (same error is deduplicated)', async () => {
+    const onError = vi.fn();
+    init(options());
+
+    render(
+      <SerenoErrorBoundary onError={onError} fallback={({ reset }: FallbackProps) => <button onClick={reset}>retry</button>}>
+        <Exploding />
+      </SerenoErrorBoundary>,
+    );
+    act(() => container.querySelector('button')!.click());
+    await flush();
+
+    expect(container.textContent).toBe('retry');
+    expect(onError).toHaveBeenCalledTimes(2);
     expect(events).toHaveLength(1);
   });
 

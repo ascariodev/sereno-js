@@ -78,6 +78,14 @@ function errorOf(exception: unknown, className: string): { value: unknown } | un
   return undefined;
 }
 
+function isExpected(exception: unknown): boolean {
+  return (
+    (exception instanceof HttpException && exception.getStatus() < 500) ||
+    errorOf(exception, 'RpcException') !== undefined ||
+    errorOf(exception, 'WsException') !== undefined
+  );
+}
+
 function isObject(value: unknown): boolean {
   return typeof value === 'object' && value !== null;
 }
@@ -133,9 +141,9 @@ function replyWs(exception: unknown, host: ArgumentsHost): void {
 /**
  * Global NestJS exception filter: captures the exception and then answers as Nest would without it. In HTTP it
  * delegates to `BaseExceptionFilter`; in rpc and ws it reproduces Nest's default handlers. `HttpException`s with a
- * status below 500 are not captured. In HTTP the context carries only `method` and `route` (the route pattern such as
- * `/users/:id` when known, otherwise the path); never the query string, headers or body. Rpc and ws errors are
- * captured without context.
+ * status below 500, `RpcException`s and `WsException`s are expected errors and are not captured. In HTTP the context carries only `method` and `route` (the route pattern such as
+ * `/users/:id` when known, otherwise the path); never the query string, headers or body. Other rpc and ws errors
+ * are captured without context.
  *
  * `BaseExceptionFilter` needs the HTTP adapter. Recommended: `SerenoModule.forRoot()` in the root module, which
  * registers it with `APP_FILTER` and Nest injects the adapter. With `useGlobalFilters` pass it explicitly:
@@ -146,7 +154,7 @@ export class SerenoExceptionFilter extends BaseExceptionFilter {
     try {
       const client = getClient();
 
-      if (client && !(exception instanceof HttpException && exception.getStatus() < 500)) {
+      if (client && !isExpected(exception)) {
         capture(client, exception, contextOf(host));
       }
     } catch {

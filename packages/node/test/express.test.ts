@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { SerenoEvent } from '@ascariodev/sereno-core';
-import { expressErrorHandler } from '../src/express.js';
+import { expressErrorHandler, type ExpressErrorHandlerOptions } from '../src/express.js';
 import { close, flush, init } from '../src/index.js';
 
 let sink: Server;
@@ -14,10 +14,10 @@ function listen(server: Server): Promise<string> {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)));
 }
 
-function build(configure: (instance: express.Express) => void): Promise<string> {
+function build(configure: (instance: express.Express) => void, options?: ExpressErrorHandlerOptions): Promise<string> {
   const instance = express();
   configure(instance);
-  instance.use(expressErrorHandler());
+  instance.use(expressErrorHandler(options));
   app = createServer(instance);
 
   return listen(app);
@@ -106,6 +106,77 @@ describe('expressErrorHandler', () => {
 
     expect(response.status).toBe(503);
     expect(events.map((event) => event.message)).toEqual(['unavailable']);
+  });
+
+  it('captures an error whose status is outside 400-599, since Express answers 500', async () => {
+    const base = await build((instance) => {
+      instance.get('/odd', () => {
+        throw Object.assign(new Error('odd status'), { status: 200 });
+      });
+    });
+
+    const response = await fetch(`${base}/odd`);
+    await flush();
+
+    expect(response.status).toBe(500);
+    expect(events.map((event) => event.message)).toEqual(['odd status']);
+  });
+
+  it('captures 4xx errors when minStatus is lowered to 400', async () => {
+    const base = await build(
+      (instance) => {
+        instance.get('/missing', () => {
+          throw Object.assign(new Error('nope'), { status: 404 });
+        });
+      },
+      { minStatus: 400 },
+    );
+
+    const response = await fetch(`${base}/missing`);
+    await flush();
+
+    expect(response.status).toBe(404);
+    expect(events.map((event) => event.message)).toEqual(['nope']);
+  });
+
+  it('uses a valid statusCode when status is outside 400-599', async () => {
+    const base = await build((instance) => {
+      instance.get('/mixed', () => {
+        throw Object.assign(new Error('mixed'), { status: 200, statusCode: 404 });
+      });
+    });
+
+    const response = await fetch(`${base}/mixed`);
+    await flush();
+
+    expect(response.status).toBe(404);
+    expect(events).toHaveLength(0);
+  });
+
+  it('falls back to a 4xx response status set before the error', async () => {
+    const base = await build((instance) => {
+      instance.get('/preset', (_request, response) => {
+        response.status(404);
+        throw Object.assign(new Error('preset'), { status: 200 });
+      });
+    });
+
+    const response = await fetch(`${base}/preset`);
+    await flush();
+
+    expect(response.status).toBe(404);
+    expect(events).toHaveLength(0);
+  });
+
+  it('captures and calls next(error) when headers were already sent', async () => {
+    const error = new Error('after headers');
+    const forwarded: unknown[] = [];
+
+    expressErrorHandler()(error, { method: 'GET', path: '/late' }, { headersSent: true, statusCode: 200 }, (value) => forwarded.push(value));
+    await flush();
+
+    expect(forwarded).toEqual([error]);
+    expect(events.map((event) => event.message)).toEqual(['after headers']);
   });
 
   it('only passes the error on when the SDK is not initialized', async () => {
