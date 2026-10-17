@@ -151,6 +151,77 @@ describe('register', () => {
   });
 });
 
+describe('Pages Router', () => {
+  it('captures an error thrown by an API route with its route pattern and without path, query or headers', async () => {
+    await nextOnRequestError(
+      new Error('api route boom'),
+      { path: '/api/users/42?token=secret', method: 'PUT', headers: { cookie: 'session=secret' } },
+      { routerKind: 'Pages Router', routePath: '/api/users/[id]', routeType: 'route', revalidateReason: undefined },
+    );
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      message: 'api route boom',
+      context: { method: 'PUT', route: '/api/users/[id]', routeType: 'route', routerKind: 'Pages Router' },
+    });
+    expect(events[0]?.context).not.toHaveProperty('renderSource');
+    expect(JSON.stringify(events[0])).not.toContain('secret');
+    expect(JSON.stringify(events[0])).not.toContain('/api/users/42');
+  });
+
+  it('captures an error thrown by getServerSideProps as a render error', async () => {
+    await nextOnRequestError(
+      new Error('gssp boom'),
+      { path: '/posts/7?draft=1', method: 'GET', headers: {} },
+      { routerKind: 'Pages Router', routePath: '/posts/[id]', routeType: 'render', revalidateReason: undefined },
+    );
+
+    expect(events[0]).toMatchObject({
+      message: 'gssp boom',
+      context: { method: 'GET', route: '/posts/[id]', routeType: 'render', routerKind: 'Pages Router' },
+    });
+    expect(JSON.stringify(events[0])).not.toContain('draft');
+  });
+
+  it('applies the same status filter to errors of the Pages Router', async () => {
+    const context = { routerKind: 'Pages Router', routePath: '/api/items', routeType: 'route', revalidateReason: undefined } as const;
+
+    await nextOnRequestError(Object.assign(new Error('not allowed'), { statusCode: 405 }), { path: '/api/items', method: 'POST', headers: {} }, context);
+    await nextOnRequestError(Object.assign(new Error('broken'), { statusCode: 500 }), { path: '/api/items', method: 'POST', headers: {} }, context);
+
+    expect(events.map((event) => event.message)).toEqual(['broken']);
+  });
+});
+
+describe('development server', () => {
+  it('captures errors and registers the SDK with NODE_ENV=development', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    await nextOnRequestError(new Error('dev boom'), routeRequest, routeContext);
+    await nextOnRequestError(
+      new Error('dev pages boom'),
+      { path: '/api/dev', method: 'GET', headers: {} },
+      { routerKind: 'Pages Router', routePath: '/api/dev', routeType: 'route', revalidateReason: undefined },
+    );
+
+    expect(events.map((event) => event.message)).toEqual(['dev boom', 'dev pages boom']);
+
+    await close();
+    vi.stubEnv('SERENO_URL', sinkUrl);
+    vi.stubEnv('SERENO_KEY', 'wsk_test');
+    await register({ handlers: false });
+    expect(getClient()?.configured).toBe(true);
+  });
+
+  it('ignores the control flow errors of Next in development too', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    await nextOnRequestError(Object.assign(new Error('redirect'), { digest: 'NEXT_REDIRECT;push;/login;307;' }), routeRequest, routeContext);
+
+    expect(events).toHaveLength(0);
+  });
+});
+
 function distUrl(file: string): string {
   return pathToFileURL(fileURLToPath(new URL(`../dist/${file}`, import.meta.url))).href;
 }

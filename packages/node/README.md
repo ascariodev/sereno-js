@@ -180,8 +180,8 @@ platform; Fastify is not tested.
 
 ## Next.js
 
-Next.js 15 or newer, App Router. Create `instrumentation.ts` at the root of the project (or in `src/`) and re-export
-the hooks:
+Next.js 15 or newer, App Router or Pages Router. Create `instrumentation.ts` at the root of the project (or in `src/`)
+and re-export the hooks:
 
 ```ts
 export { register, onRequestError } from '@ascariodev/sereno-node/next';
@@ -191,8 +191,8 @@ Set `SERENO_URL` and `SERENO_KEY` in the server environment. Notes:
 
 - `register` is `async` and initializes the SDK only in the Node.js runtime. In the `edge` runtime it does nothing
   (the Node modules are never loaded there). It does not reinitialize a client created earlier with `init`.
-- `onRequestError` captures errors from Server Components, route handlers and server actions, waits for the event to
-  be sent (at most 10 seconds) and never throws. Redirects, `notFound()` and other control-flow errors are ignored.
+- `onRequestError` captures errors from Server Components, route handlers, server actions and, in the Pages Router,
+  API routes and `getServerSideProps`; it waits for the event to be sent (at most 10 seconds) and never throws. Redirects, `notFound()` and other control-flow errors are ignored.
   The context carries `method`, `route` (the route pattern such as `/api/users/[id]`), `routeType`, `routerKind` and
   `renderSource`; never the path, query, headers or body.
 - Different options: write your own file with `import { register as base, createOnRequestError } from
@@ -200,7 +200,8 @@ Set `SERENO_URL` and `SERENO_KEY` in the server environment. Notes:
   createOnRequestError({ minStatus: 400 })`.
 - Inside Next, if you do not want the process handlers (Next manages its own), use
   `register({ handlers: false })` through the custom file above.
-- Client-side errors are not captured here. The Pages Router and the development server are not tested.
+- Client-side errors are not captured here. The SDK has no development-specific logic, so `next dev` uses the same
+  hooks; it is not tested against a real `next dev` server.
 
 ## Configuration
 
