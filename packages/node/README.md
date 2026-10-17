@@ -119,6 +119,8 @@ app.listen(3000);
 
 The middleware captures the error and passes it on with `next(error)`, so Express still builds the response. It
 ignores errors whose `status` or `statusCode` is below 500 (change it with `expressErrorHandler({ minStatus: 400 })`).
+The status is resolved as Express does: the error's `status`, then `statusCode`, then the response status, each only if
+it is 400-599, otherwise 500. So an error with status 200 is captured.
 The context carries only `method` and `route`: the route pattern such as `/users/:id` when matched, otherwise the path;
 never the query string, headers or body.
 
