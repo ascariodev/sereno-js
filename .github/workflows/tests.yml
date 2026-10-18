@@ -28,5 +28,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+        if: matrix.node == '24'
+      # The browser tests need jsdom, which requires Node 22.22+; the browser package itself runs in browsers.
+      - run: npm test -w packages/core -w packages/node
+        if: matrix.node == '20'
       - run: npm run test:react18 -w packages/browser
         if: matrix.node == '24'
