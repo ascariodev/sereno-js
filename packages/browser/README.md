@@ -164,7 +164,10 @@ error and renders the children again. Without `fallback` it renders nothing afte
 info)` is called after the error is sent (what it throws is ignored), and `client` sends to a client of your own instead
 of the active one. Before `init` (or without `client`) the boundary sends nothing, but it still catches the error and
 renders `fallback`. With TypeScript, install `@types/react`. Tested with React 19.3 (the `react` devDependency of this
-package); React 18 is in the peer range but not tested yet.
+package) and React 18.3.1 (`npm run test:react18`). In React 18 development builds, React also reports a render error
+to `window` before the boundary does, so the same error arrives twice: once without `componentStack` (from the global
+listeners) and once with it. The same happens with an error thrown by a `fallback`, which also sends the original
+error. React 19 sends one event.
 
 As with any React error boundary, errors in event handlers, timers and promises are not caught by it; the global
 listeners above capture them.

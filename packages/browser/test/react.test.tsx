@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
-import { act, useState } from 'react';
+import { act, useState, version } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -21,6 +21,9 @@ interface Dom {
 const dom = globalThis as unknown as Dom;
 dom.IS_REACT_ACT_ENVIRONMENT = true;
 
+const isReact18 = version.startsWith('18.');
+// React 18 in development also reports the render error to window, before the boundary does
+const boundaryEvents = isReact18 ? 2 : 1;
 const KEY = 'wsp_' + 'd'.repeat(40);
 
 let events: SerenoEvent[];
@@ -45,6 +48,10 @@ function Exploding({ when = true }: { when?: boolean }) {
   }
 
   return <p>child ok</p>;
+}
+
+function Thrower({ error }: { error: Error }): never {
+  throw error;
 }
 
 function render(node: ReactNode) {
@@ -79,9 +86,9 @@ describe('SerenoErrorBoundary', () => {
     await flush();
 
     expect(container.textContent).toBe('something broke');
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ level: 'error', message: 'render failed', context: { exception: { class: 'Error' } } });
-    expect(events[0]?.context?.componentStack).toEqual(expect.stringContaining('Exploding'));
+    expect(events).toHaveLength(boundaryEvents);
+    expect(events.at(-1)).toMatchObject({ level: 'error', message: 'render failed', context: { exception: { class: 'Error' } } });
+    expect(events.at(-1)?.context?.componentStack).toEqual(expect.stringContaining('Exploding'));
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0]?.[1]).toHaveProperty('componentStack');
   });
@@ -107,11 +114,31 @@ describe('SerenoErrorBoundary', () => {
     await flush();
     scope.removeEventListener('error', countWindowError);
 
-    // React 19 only: React 18 dev dispatches the window error during render
-    expect(reactWindowErrors).toBe(0);
-    expect(windowErrors).toBe(1);
-    expect(events).toHaveLength(1);
-    expect(events[0]?.context?.componentStack).toBeDefined();
+    // React 18 in development dispatches the window error during render, before the boundary reports
+    expect(reactWindowErrors > 0).toBe(isReact18);
+    expect(windowErrors).toBe(reactWindowErrors + 1);
+    expect(events).toHaveLength(isReact18 ? 2 : 1);
+    expect(events.filter((event) => event.context?.componentStack !== undefined)).toHaveLength(1);
+  });
+
+  it('keeps the componentStack when the window error for the same error arrives first', async () => {
+    const scope = globalThis as unknown as { dispatchEvent(event: Event): void };
+    const ErrorEventClass = (globalThis as unknown as { ErrorEvent: new (type: string, init: object) => Event }).ErrorEvent;
+    const error = new Error('render failed early');
+    init(options());
+
+    scope.dispatchEvent(new ErrorEventClass('error', { error }));
+    render(
+      <SerenoErrorBoundary fallback={<p>fallback</p>}>
+        <Thrower error={error} />
+      </SerenoErrorBoundary>,
+    );
+    await flush();
+
+    expect(container.textContent).toBe('fallback');
+    expect(events).toHaveLength(2);
+    expect(events[0]?.context?.componentStack).toBeUndefined();
+    expect(events[1]?.context?.componentStack).toEqual(expect.stringContaining('Thrower'));
   });
 
   it('renders the children again after reset', async () => {
@@ -141,7 +168,7 @@ describe('SerenoErrorBoundary', () => {
 
     expect(container.textContent).toBe('child ok');
     await flush();
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(boundaryEvents);
   });
 
   it('hands an error thrown by the fallback to the parent boundary', async () => {
@@ -161,8 +188,8 @@ describe('SerenoErrorBoundary', () => {
     await flush();
 
     expect(container.textContent).toBe('outer fallback');
-    // React 19: the original error is not reported; React 18 also sends 'render failed'
-    expect(events.map((event) => event.message)).toEqual(['fallback failed']);
+    // React 19 does not report the original error; React 18 also sends 'render failed'
+    expect(events.map((event) => event.message).sort()).toEqual(isReact18 ? ['fallback failed', 'render failed'] : ['fallback failed']);
   });
 
   it('shows the fallback again and calls onError again when reset and the child still fails (same error is deduplicated)', async () => {
@@ -179,7 +206,7 @@ describe('SerenoErrorBoundary', () => {
 
     expect(container.textContent).toBe('retry');
     expect(onError).toHaveBeenCalledTimes(2);
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(boundaryEvents);
   });
 
   it('sends to the client given in the props', async () => {
