@@ -151,6 +151,12 @@ describe('formatEvent', () => {
     });
   });
 
+  it('does not traverse a Map, so numeric keys are never stringified', () => {
+    const event = formatEvent({ level: 'info', message: 'm', context: { map: new Map([[1.5, 'a'], [NaN, 'b']]) } });
+
+    expect(event.context).toStrictEqual({ map: '[object Map]' });
+  });
+
   it('survives circular references through the depth limit', () => {
     const circular: Record<string, unknown> = {};
     circular.self = circular;
@@ -316,6 +322,13 @@ describe('serializeException', () => {
     error.stack = undefined;
 
     expect(serializeException(error)).toStrictEqual({ class: 'Error', message: 'x', location: '', trace: '' });
+  });
+
+  it('hashes the cleaned class and message when a long fingerprint has no location', () => {
+    const error = new Error('😀'.repeat(255) + '\u0000' + '😀');
+    error.stack = undefined;
+
+    expect(formatEvent({ level: 'error', message: 'm', context: { exception: error } }).fingerprint).toBe('fb5607380cadf80c2ad05e5ff020ec4aa8efcb03');
   });
 
   it('cuts the trace to 2000 code points', () => {
