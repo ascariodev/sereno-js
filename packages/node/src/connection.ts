@@ -1,5 +1,6 @@
 import { Transport, formatEvent } from '@ascariodev/sereno-core';
 import type { TransportOptions } from '@ascariodev/sereno-core';
+import { uploadSourceMaps, type UploadFetch } from './sourcemaps.js';
 
 export const TEST_TIMEOUT_SECONDS = 5;
 
@@ -56,7 +57,30 @@ export interface CliIo {
   err(text: string): void;
 }
 
-const USAGE = 'Usage: sereno-node test [--key=<key>] [--url=<url>]\nSends a test event to Sereno. Falls back to SERENO_KEY and SERENO_URL.\n';
+const USAGE =
+  'Usage: sereno-node test [--key=<key>] [--url=<url>]\n' +
+  'Sends a test event to Sereno.\n' +
+  'Usage: sereno-node sourcemaps upload <dir> --release=<release> --url-prefix=<prefix> [--key=<key>] [--url=<url>]\n' +
+  'Uploads the *.js.map files under <dir> with the server key. <prefix> is the URL path the JavaScript files are served from.\n' +
+  'Both commands fall back to SERENO_KEY and SERENO_URL.\n';
+
+const VALUE_OPTIONS = ['key', 'url', 'release', 'url-prefix'];
+
+function positionals(args: string[]): string[] {
+  const found: string[] = [];
+
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+
+    if (!arg.startsWith('--')) {
+      found.push(arg);
+    } else if (VALUE_OPTIONS.includes(arg.slice(2)) && args[index + 1] !== undefined && !args[index + 1]!.startsWith('--')) {
+      index++;
+    }
+  }
+
+  return found;
+}
 
 function option(args: string[], name: string): string | undefined {
   for (let index = 0; index < args.length; index++) {
@@ -76,17 +100,51 @@ function option(args: string[], name: string): string | undefined {
   return undefined;
 }
 
-export async function runCli(args: string[], io: CliIo, options: Pick<TransportOptions, 'fetch'> = {}): Promise<number> {
+async function sourcemapsCommand(
+  args: string[],
+  io: CliIo,
+  pick: (name: string, variable: string) => string | undefined,
+  fetch: UploadFetch | undefined,
+): Promise<number> {
+  const [, action, dir, ...extra] = positionals(args);
+
+  if (action !== 'upload' || dir === undefined || extra.length > 0) {
+    io.err(USAGE);
+
+    return 1;
+  }
+
+  const url = (pick('url', 'SERENO_URL') ?? '').trim();
+  const key = (pick('key', 'SERENO_KEY') ?? '').trim();
+  const release = option(args, 'release') ?? '';
+  const urlPrefix = option(args, 'url-prefix') ?? '';
+  const missing =
+    url === ''
+      ? 'Missing URL: pass --url=<url> or set SERENO_URL.'
+      : key === ''
+        ? 'Missing key: pass --key=<key> or set SERENO_KEY.'
+        : release.trim() === ''
+          ? 'Missing release: pass --release=<release>.'
+          : urlPrefix.trim() === ''
+            ? 'Missing URL prefix: pass --url-prefix=<prefix>, the URL path the JavaScript files are served from.'
+            : undefined;
+
+  if (missing !== undefined) {
+    io.out(`${missing}\n`);
+
+    return 1;
+  }
+
+  return uploadSourceMaps({ url, key, dir, release, urlPrefix, fetch, out: io.out });
+}
+
+export type CliOptions = Pick<TransportOptions, 'fetch'> & { uploadFetch?: UploadFetch };
+
+export async function runCli(args: string[], io: CliIo, options: CliOptions = {}): Promise<number> {
   if (args.includes('--help') || args.includes('-h')) {
     io.out(USAGE);
 
     return 0;
-  }
-
-  if (args[0] !== 'test') {
-    io.err(USAGE);
-
-    return 1;
   }
 
   const pick = (name: string, variable: string): string | undefined => {
@@ -94,6 +152,16 @@ export async function runCli(args: string[], io: CliIo, options: Pick<TransportO
 
     return value !== undefined && value !== '' ? value : io.env[variable];
   };
+
+  if (args[0] === 'sourcemaps') {
+    return sourcemapsCommand(args, io, pick, options.uploadFetch);
+  }
+
+  if (args[0] !== 'test') {
+    io.err(USAGE);
+
+    return 1;
+  }
 
   const result = await testConnection(pick('url', 'SERENO_URL'), pick('key', 'SERENO_KEY'), options);
   const detail = result.detail !== null ? ` (${result.detail})` : '';

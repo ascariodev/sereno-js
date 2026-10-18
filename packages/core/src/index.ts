@@ -11,6 +11,7 @@ export {
   Transport,
   defaultScheduler,
   normalizeLevel,
+  normalizeRelease,
   normalizeTimeout,
   redact,
 } from './client.js';

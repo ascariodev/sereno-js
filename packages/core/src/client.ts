@@ -1,4 +1,4 @@
-import { LOG_LEVELS, formatEvent, isLogLevel } from './format.js';
+import { LOG_LEVELS, formatEvent, isLogLevel, trim } from './format.js';
 import type { LogLevel, LogRecord, SerenoEvent } from './format.js';
 
 export const BATCH_SIZE = 100;
@@ -11,6 +11,8 @@ export const FLUSH_DELAY_MS = 1000;
 export const INGEST_PATH = '/api/ingest/events';
 
 const MAX_BODY_CHARS = 500;
+const MAX_RELEASE_LENGTH = 200;
+const INVALID_RELEASE = /\p{C}/u;
 
 /** Minimal shape of what the client needs from `fetch`, so no DOM or Node typings are required. */
 export interface FetchResponseLike {
@@ -54,6 +56,8 @@ export interface ClientOptions extends TransportOptions {
   key?: string | null;
   /** Minimum level to record; invalid values fall back to `debug`. */
   level?: LogLevel | string | null;
+  /** Version of the build, sent with every event so the server can find its source maps. Invalid values are ignored. */
+  release?: string | null;
   /** Receives failure notices; defaults to `console.error`. Whatever it logs is not buffered. */
   notifier?: (message: string) => void;
 }
@@ -88,6 +92,17 @@ export function normalizeTimeout(value: unknown): number {
   }
 
   return number > MAX_TIMEOUT_SECONDS ? MAX_TIMEOUT_SECONDS : number;
+}
+
+export function normalizeRelease(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const release = trim(value);
+  const length = Array.from(release).length;
+
+  return length >= 1 && length <= MAX_RELEASE_LENGTH && !INVALID_RELEASE.test(release) ? release : undefined;
 }
 
 export function normalizeLevel(value: unknown): LogLevel {
@@ -272,6 +287,7 @@ class FetchUnavailableError extends Error {}
 export class Client {
   readonly configured: boolean;
   readonly level: LogLevel;
+  readonly release: string | undefined;
   private readonly transport: Transport | null;
   private readonly notifier: (message: string) => void;
   private readonly scheduler: Scheduler;
@@ -288,6 +304,7 @@ export class Client {
 
     this.configured = url !== '' && key !== '';
     this.level = normalizeLevel(options.level);
+    this.release = normalizeRelease(options.release);
     this.scheduler = options.scheduler ?? defaultScheduler;
     this.notifier =
       options.notifier ??
@@ -335,6 +352,10 @@ export class Client {
 
       try {
         event = formatEvent(record);
+
+        if (this.release !== undefined) {
+          event.release = this.release;
+        }
       } catch (error) {
         this.report(`Sereno log event could not be formatted: ${errorMessage(error)}`);
 

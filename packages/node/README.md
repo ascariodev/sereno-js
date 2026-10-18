@@ -284,6 +284,58 @@ The `test` subcommand is required. It sends one test event (level `info`, messag
 
 Every outcome other than "Connected" exits with code 1.
 
+## Uploading source maps
+
+Sereno rewrites the stack trace of a minified browser error to the original files and lines when it has the source maps
+of that build. Upload them from your CI after each build, with the **server key** (`wsk_`) of the source; the browser key
+cannot upload maps.
+
+```bash
+npx @ascariodev/sereno-node sourcemaps upload dist --release="$RELEASE" --url-prefix=/
+```
+
+- `<dir>` is searched recursively for `*.js.map`, `*.mjs.map` and `*.cjs.map` (CSS maps are skipped).
+- `--release` must be the same `release` the browser SDK sends with its events (1 to 200 characters, no control
+  characters). Uploading again for the same release and file replaces the map.
+- `--url-prefix` is the URL path the files of `<dir>` are served from. Each map is stored for the path of its JavaScript
+  file: the prefix plus the path of the map relative to `<dir>`, without `.map` (`dist/assets/index-abc.js.map` with
+  `--url-prefix=/` becomes `/assets/index-abc.js`). A full URL is accepted and only its path is kept
+  (`https://cdn.example.com/app/` means `/app/`), because Sereno matches the trace URLs by path. The path is
+  percent-encoded as the browser shows it in a stack trace (`mi app é.js` becomes `mi%20app%20%C3%A9.js`); a `%`, `?` or
+  `#` in a file name is encoded as well. Symbolic links under `<dir>` are skipped.
+- `--key` and `--url` fall back to `SERENO_KEY` and `SERENO_URL`. The key is never printed.
+
+Every map is tried even if one fails, and the command exits with code 1 if any failed or none was found. A `401` or `403`
+stops it at the first map.
+
+With Vite, build hidden source maps (no `//# sourceMappingURL` comment in the bundles), pass the release to the browser
+SDK, upload, and delete the maps before publishing `dist`:
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: { sourcemap: 'hidden' },
+});
+```
+
+```ts
+// main.ts, with @ascariodev/sereno-browser
+import { init } from '@ascariodev/sereno-browser';
+
+init({ url: import.meta.env.VITE_SERENO_URL, key: import.meta.env.VITE_SERENO_KEY, release: import.meta.env.VITE_RELEASE });
+```
+
+```bash
+export VITE_RELEASE="$(git rev-parse --short HEAD)"
+npm run build
+npx @ascariodev/sereno-node sourcemaps upload dist --release="$VITE_RELEASE" --url-prefix=/
+find dist -name '*.map' -delete
+```
+
+If the app is served under a sub-path (`base: '/app/'` in Vite), use `--url-prefix=/app/`.
+
 ## Events
 
 Each record becomes an event with `id`, `level`, `message`, `occurred_at` (UTC), optional `context` and optional

@@ -5,6 +5,7 @@ import {
   Client,
   Transport,
   normalizeLevel,
+  normalizeRelease,
   normalizeTimeout,
   redact,
   type ClientOptions,
@@ -100,6 +101,32 @@ describe('Client over HTTP', () => {
     expect(hits[0]!.headers['content-type']).toBe('application/json');
     expect(hits[0]!.body.events[0]).toMatchObject({ level: 'error', message: 'boom', context: { a: 1 } });
     expect(notices).toEqual([]);
+  });
+
+  it('sends the release in each event and omits it when not set', async () => {
+    const withRelease = make({ release: '  1.4.2+abc  ' });
+    withRelease.client.log({ level: 'info', message: 'a' });
+    await withRelease.client.flush();
+
+    const without = make();
+    without.client.log({ level: 'info', message: 'b' });
+    await without.client.flush();
+
+    expect(hits[0]!.body.events[0]!.release).toBe('1.4.2+abc');
+    expect('release' in hits[1]!.body.events[0]!).toBe(false);
+  });
+
+  it('ignores a release that the server would reject', () => {
+    expect(normalizeRelease('a'.repeat(200))).toBe('a'.repeat(200));
+    expect(normalizeRelease('a'.repeat(201))).toBeUndefined();
+    expect(normalizeRelease('')).toBeUndefined();
+    expect(normalizeRelease('   ')).toBeUndefined();
+    expect(normalizeRelease('1.0\n2')).toBeUndefined();
+    expect(normalizeRelease('1.0\u200b2')).toBeUndefined();
+    expect(normalizeRelease('1.0\ue0002')).toBeUndefined();
+    expect(normalizeRelease('1.0\u03782')).toBeUndefined();
+    expect(normalizeRelease('1.0\ud8002')).toBeUndefined();
+    expect(normalizeRelease(42)).toBeUndefined();
   });
 
   it('sends right away when the buffer reaches 100 and splits larger flushes', async () => {
