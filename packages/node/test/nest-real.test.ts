@@ -8,8 +8,7 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { SubscribeMessage, WebSocketGateway, WsException } from '@nestjs/websockets';
-import { createServer } from 'node:net';
-import type { AddressInfo } from 'node:net';
+import type { AddressInfo, Server } from 'node:net';
 import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
@@ -34,16 +33,6 @@ afterEach(async () => {
   await sink.stop();
 });
 
-function freePort(): Promise<number> {
-  return new Promise((resolve) => {
-    const server = createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address() as AddressInfo;
-      server.close(() => resolve(port));
-    });
-  });
-}
-
 function messages(): string[] {
   return sink.events.map((event) => event.message);
 }
@@ -66,13 +55,13 @@ describe('SerenoExceptionFilter against real Nest transports', () => {
     class AppModule {}
     Module({ imports: [SerenoModule.forRoot()], controllers: [MathController] })(AppModule);
 
-    const port = await freePort();
     const microservice: INestMicroservice = await NestFactory.createMicroservice(AppModule, {
       transport: Transport.TCP,
-      options: { host: '127.0.0.1', port },
+      options: { host: '127.0.0.1', port: 0 },
       logger: false,
     });
     await microservice.listen();
+    const port = (microservice.unwrap<Server>().address() as AddressInfo).port;
     closers.push(() => microservice.close());
     const client: ClientProxy = ClientProxyFactory.create({ transport: Transport.TCP, options: { host: '127.0.0.1', port } });
     closers.push(() => client.close());
@@ -84,7 +73,7 @@ describe('SerenoExceptionFilter against real Nest transports', () => {
     expect(messages()).toEqual(['rpc real boom']);
   });
 
-  it('ws gateway (filter bound with @UseFilters, since Nest does not apply global filters to gateways): captures an unexpected error and emits the exception event on the server-side client, ignores WsException', async () => {
+  it('ws gateway with @UseFilters: captures an unexpected error, ignores WsException', async () => {
     const emitted: unknown[] = [];
     class ChatGateway {
       handleConnection(client: WebSocket): void {

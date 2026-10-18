@@ -192,7 +192,9 @@ Catch()(SerenoExceptionFilter);
 /**
  * `SerenoModule.forRoot()` registers `SerenoExceptionFilter` as a global filter (`APP_FILTER`). With options it also
  * calls `init(options)` unless the SDK is already initialized; without them it expects `init()` to have run already,
- * ideally in `main.ts` before `NestFactory.create` so bootstrap errors are captured too.
+ * ideally in `main.ts` before `NestFactory.create` so bootstrap errors are captured too. `@nestjs/websockets` does not
+ * apply `APP_FILTER`: gateways need `@UseFilters(SerenoExceptionFilter)`, and with `WsAdapter` the `exception` event
+ * does not reach the remote client.
  */
 export class SerenoModule {
   static forRoot(options?: InitOptions): DynamicModule {

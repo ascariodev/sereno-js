@@ -175,8 +175,12 @@ The filter captures the exception and then answers exactly as Nest would. `HttpE
 not captured, and neither are `RpcException` and `WsException` (matched by class name, so `@nestjs/microservices` and
 `@nestjs/websockets` stay optional): they are usually expected client errors. In HTTP the context carries only `method`
 and `route`. Any other error in microservice (`rpc`) and WebSocket (`ws`) handlers is captured, without context, and
-every exception is answered like Nest's defaults. It is tested with the Express
-platform; Fastify is not tested.
+every exception is answered like Nest's defaults. It is tested against real Nest: Express (HTTP), a TCP microservice,
+a `ws` gateway (with `WsAdapter`) and Fastify.
+
+`@nestjs/websockets` does not apply `APP_FILTER`, so a gateway needs the filter bound on it:
+`@UseFilters(SerenoExceptionFilter)` on the class or the handler. With `WsAdapter` (`@nestjs/platform-ws`) the
+`exception` event Nest emits does not reach the remote client; the error is still captured.
 
 ## Next.js
 
