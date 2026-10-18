@@ -103,6 +103,22 @@ describe('SerenoWinstonTransport', () => {
     expect(sink.events[1]).toMatchObject({ context: { exception: expect.objectContaining({ class: 'RangeError', message: 'boom' }) } });
   });
 
+  it('keeps the class of an Error that format.errors() turned into a plain info', async () => {
+    init({ url: sink.url, key: 'wsk_test', handlers: false });
+    const logger = winston.createLogger({
+      format: winston.format.combine(winston.format.errors({ stack: true })),
+      transports: [new SerenoWinstonTransport()],
+    });
+    class PaymentError extends Error {
+      override name = 'PaymentError';
+    }
+
+    logger.error(new PaymentError('declined'));
+    await flush();
+
+    expect(sink.events[0]).toMatchObject({ message: 'declined', context: { exception: expect.objectContaining({ class: 'PaymentError' }) } });
+  });
+
   it('keeps an error field that is not an error in the context', async () => {
     init({ url: sink.url, key: 'wsk_test', handlers: false });
     const logger = winston.createLogger({ transports: [new SerenoWinstonTransport()] });
