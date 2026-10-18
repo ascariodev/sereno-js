@@ -17,9 +17,14 @@ function codePoints(value: string): number {
   return Array.from(value).length;
 }
 
-function makeError(spec: { class: string; message: string; file: string; line: number }): Error {
+function makeError(spec: { class: string; message: string; file?: string; line?: number; trace?: string }): Error {
   const error = new Error(spec.message);
-  error.stack = `Error: ${spec.message}\n    at Object.<anonymous> (${spec.file}:${spec.line}:5)\n    at node:internal/main:1:1`;
+  error.stack =
+    spec.trace !== undefined
+      ? spec.trace
+      : spec.file === undefined
+      ? `Error: ${spec.message}`
+      : `Error: ${spec.message}\n    at Object.<anonymous> (${spec.file}:${spec.line}:5)\n    at node:internal/main:1:1`;
 
   return error;
 }
@@ -144,6 +149,12 @@ describe('formatEvent', () => {
       map: '[object Map]',
       json: { a: 1 },
     });
+  });
+
+  it('does not traverse a Map, so numeric keys are never stringified', () => {
+    const event = formatEvent({ level: 'info', message: 'm', context: { map: new Map([[1.5, 'a'], [NaN, 'b']]) } });
+
+    expect(event.context).toStrictEqual({ map: '[object Map]' });
   });
 
   it('survives circular references through the depth limit', () => {
@@ -311,6 +322,13 @@ describe('serializeException', () => {
     error.stack = undefined;
 
     expect(serializeException(error)).toStrictEqual({ class: 'Error', message: 'x', location: '', trace: '' });
+  });
+
+  it('hashes the cleaned class and message when a long fingerprint has no location', () => {
+    const error = new Error('😀'.repeat(255) + '\u0000' + '😀');
+    error.stack = undefined;
+
+    expect(formatEvent({ level: 'error', message: 'm', context: { exception: error } }).fingerprint).toBe('fb5607380cadf80c2ad05e5ff020ec4aa8efcb03');
   });
 
   it('cuts the trace to 2000 code points', () => {

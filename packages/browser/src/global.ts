@@ -153,7 +153,7 @@ export class BrowserClient extends Client {
   /** True while the page is hidden or being left: deliveries use `keepalive` and failures are not reported. */
   unloading = false;
   readonly keepalive: KeepaliveMode;
-  private readonly seen = new Map<string, number>();
+  private readonly seen = new Map<string, { at: number; withStack: boolean }>();
   private admitted = 0;
   private capNoticed = false;
   private keepaliveBytes = 0;
@@ -207,7 +207,7 @@ export class BrowserClient extends Client {
       const context: Record<string, unknown> =
         rawContext !== null && typeof rawContext === 'object' && !Array.isArray(rawContext) ? rawContext : {};
 
-      if (!this.admit(this.fingerprintOf(record, context))) {
+      if (!this.admit(this.fingerprintOf(record, context), typeof context.componentStack === 'string')) {
         return;
       }
 
@@ -243,11 +243,12 @@ export class BrowserClient extends Client {
     return `message|${record.level}|${describe(record.message)}`;
   }
 
-  private admit(fingerprint: string): boolean {
+  /** A duplicate is dropped, except the first one that carries a `componentStack` after one that did not (React 18 reports a render error to `window` first). */
+  private admit(fingerprint: string, withStack: boolean): boolean {
     const now = Date.now();
     const last = this.seen.get(fingerprint);
 
-    if (last !== undefined && now - last < DEDUPE_WINDOW_MS) {
+    if (last !== undefined && now - last.at < DEDUPE_WINDOW_MS && (last.withStack || !withStack)) {
       return false;
     }
 
@@ -261,7 +262,7 @@ export class BrowserClient extends Client {
     }
 
     this.admitted++;
-    this.seen.set(fingerprint, now);
+    this.seen.set(fingerprint, { at: now, withStack });
 
     return true;
   }

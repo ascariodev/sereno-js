@@ -194,7 +194,7 @@ describe('Pages Router', () => {
 });
 
 describe('development server', () => {
-  it('captures errors and registers the SDK with NODE_ENV=development', async () => {
+  it('captures errors with NODE_ENV=development', async () => {
     vi.stubEnv('NODE_ENV', 'development');
 
     await nextOnRequestError(new Error('dev boom'), routeRequest, routeContext);
@@ -205,6 +205,10 @@ describe('development server', () => {
     );
 
     expect(events.map((event) => event.message)).toEqual(['dev boom', 'dev pages boom']);
+  });
+
+  it('registers the SDK with NODE_ENV=development', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
 
     await close();
     vi.stubEnv('SERENO_URL', sinkUrl);

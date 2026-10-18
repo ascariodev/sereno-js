@@ -57,6 +57,26 @@
         "default": "./dist/cjs/next.js"
       }
     },
+    "./pino": {
+      "import": {
+        "types": "./dist/esm/pino.d.ts",
+        "default": "./dist/esm/pino.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pino.d.ts",
+        "default": "./dist/cjs/pino.js"
+      }
+    },
+    "./winston": {
+      "import": {
+        "types": "./dist/esm/winston.d.ts",
+        "default": "./dist/esm/winston.js"
+      },
+      "require": {
+        "types": "./dist/cjs/winston.d.ts",
+        "default": "./dist/cjs/winston.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "bin": {
@@ -86,16 +106,24 @@
       ],
       "next": [
         "./dist/esm/next.d.ts"
+      ],
+      "pino": [
+        "./dist/esm/pino.d.ts"
+      ],
+      "winston": [
+        "./dist/esm/winston.d.ts"
       ]
     }
   },
   "peerDependencies": {
-    "express": ">=4",
     "@nestjs/common": ">=9",
     "@nestjs/core": ">=9",
+    "express": ">=4",
+    "next": ">=15",
+    "pino": ">=8",
     "reflect-metadata": ">=0.1.12",
     "rxjs": ">=7",
-    "next": ">=15"
+    "winston": ">=3"
   },
   "peerDependenciesMeta": {
     "express": {
@@ -115,17 +143,31 @@
     },
     "next": {
       "optional": true
+    },
+    "pino": {
+      "optional": true
+    },
+    "winston": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@nestjs/common": "^11.2.7",
     "@nestjs/core": "^11.2.7",
+    "@nestjs/microservices": "^11.2.7",
     "@nestjs/platform-express": "^11.2.7",
+    "@nestjs/platform-fastify": "^11.2.7",
+    "@nestjs/platform-ws": "^11.2.7",
+    "@nestjs/websockets": "^11.2.7",
     "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.2",
     "express": "^5.3.0",
     "next": "^16.4.1",
+    "pino": "^10.4.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "winston": "^3.19.0",
+    "ws": "^8.22.0"
   },
   "publishConfig": {
     "access": "public"

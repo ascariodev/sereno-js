@@ -62,27 +62,39 @@ function contextOf(host: ArgumentsHost): Record<string, unknown> | undefined {
 
 /**
  * Matches `RpcException`/`WsException` (and subclasses) by class name, so `@nestjs/microservices` and
- * `@nestjs/websockets` stay optional.
+ * `@nestjs/websockets` stay optional. Does not call `getError()`.
  */
-function errorOf(exception: unknown, className: string): { value: unknown } | undefined {
+function isNamed(exception: unknown, className: string): boolean {
   if (typeof exception !== 'object' || exception === null || typeof (exception as { getError?: unknown }).getError !== 'function') {
-    return undefined;
+    return false;
   }
 
   for (let proto = Object.getPrototypeOf(exception); proto; proto = Object.getPrototypeOf(proto)) {
     if ((proto as { constructor?: { name?: string } }).constructor?.name === className) {
-      return { value: (exception as { getError: () => unknown }).getError() };
+      return true;
     }
   }
 
-  return undefined;
+  return false;
+}
+
+function errorOf(exception: unknown, className: string): { value: unknown } | undefined {
+  if (!isNamed(exception, className)) {
+    return undefined;
+  }
+
+  try {
+    return { value: (exception as { getError: () => unknown }).getError() };
+  } catch {
+    return undefined;
+  }
 }
 
 function isExpected(exception: unknown): boolean {
   return (
     (exception instanceof HttpException && exception.getStatus() < 500) ||
-    errorOf(exception, 'RpcException') !== undefined ||
-    errorOf(exception, 'WsException') !== undefined
+    isNamed(exception, 'RpcException') ||
+    isNamed(exception, 'WsException')
   );
 }
 
@@ -141,9 +153,9 @@ function replyWs(exception: unknown, host: ArgumentsHost): void {
 /**
  * Global NestJS exception filter: captures the exception and then answers as Nest would without it. In HTTP it
  * delegates to `BaseExceptionFilter`; in rpc and ws it reproduces Nest's default handlers. `HttpException`s with a
- * status below 500, `RpcException`s and `WsException`s are expected errors and are not captured. In HTTP the context carries only `method` and `route` (the route pattern such as
- * `/users/:id` when known, otherwise the path); never the query string, headers or body. Other rpc and ws errors
- * are captured without context.
+ * status below 500, `RpcException`s and `WsException`s are expected errors and are not captured. In HTTP the
+ * context carries only `method` and `route` (the route pattern such as `/users/:id` when known, otherwise the
+ * path); never the query string, headers or body. Other rpc and ws errors are captured without context.
  *
  * `BaseExceptionFilter` needs the HTTP adapter. Recommended: `SerenoModule.forRoot()` in the root module, which
  * registers it with `APP_FILTER` and Nest injects the adapter. With `useGlobalFilters` pass it explicitly:
@@ -180,7 +192,9 @@ Catch()(SerenoExceptionFilter);
 /**
  * `SerenoModule.forRoot()` registers `SerenoExceptionFilter` as a global filter (`APP_FILTER`). With options it also
  * calls `init(options)` unless the SDK is already initialized; without them it expects `init()` to have run already,
- * ideally in `main.ts` before `NestFactory.create` so bootstrap errors are captured too.
+ * ideally in `main.ts` before `NestFactory.create` so bootstrap errors are captured too. `@nestjs/websockets` does not
+ * apply `APP_FILTER`: gateways need `@UseFilters(SerenoExceptionFilter)`, and with `WsAdapter` the `exception` event
+ * does not reach the remote client.
  */
 export class SerenoModule {
   static forRoot(options?: InitOptions): DynamicModule {

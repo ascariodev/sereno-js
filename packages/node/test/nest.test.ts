@@ -157,6 +157,12 @@ class WsException extends RpcException {}
 
 class CustomRpcException extends RpcException {}
 
+class ThrowingRpcException extends RpcException {
+  override getError(): unknown {
+    throw new Error('getError failed');
+  }
+}
+
 class LookalikeError extends Error {
   getError(): unknown {
     return 'nope';
@@ -225,5 +231,17 @@ describe('SerenoExceptionFilter outside HTTP', () => {
     await flush();
 
     expect(events.map((event) => event.message)).toEqual(['lookalike']);
+  });
+
+  it('isExpected does not call getError: a throwing RpcException is not captured and still gets a reply', async () => {
+    const filter = new SerenoExceptionFilter();
+
+    await expect(firstValueFrom(filter.catch(new ThrowingRpcException('x'), fakeHost('rpc')) as Observable<never>)).rejects.toEqual({
+      status: 'error',
+      message: 'Internal server error',
+    });
+    await flush();
+
+    expect(events).toEqual([]);
   });
 });

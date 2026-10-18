@@ -164,7 +164,10 @@ error and renders the children again. Without `fallback` it renders nothing afte
 info)` is called after the error is sent (what it throws is ignored), and `client` sends to a client of your own instead
 of the active one. Before `init` (or without `client`) the boundary sends nothing, but it still catches the error and
 renders `fallback`. With TypeScript, install `@types/react`. Tested with React 19.3 (the `react` devDependency of this
-package); React 18 is in the peer range but not tested yet.
+package) and React 18.3.1 (`npm run test:react18`). In React 18 development builds, React also reports a render error
+to `window` before the boundary does, so the same error arrives twice: once without `componentStack` (from the global
+listeners) and once with it. The same happens with an error thrown by a `fallback`, which also sends the original
+error. React 19 sends one event.
 
 As with any React error boundary, errors in event handlers, timers and promises are not caught by it; the global
 listeners above capture them.
@@ -175,7 +178,7 @@ Each record becomes an event with `id`, `level`, `message`, `occurred_at` (UTC),
 `fingerprint`, formatted by `@ascariodev/sereno-core` with the same limits as the other Sereno SDKs: messages are cut at
 8192 characters, context at 32 KB, strings in the context at 2048 characters (the React `componentStack` included) and
 stack traces at 2000. When anything is cut, the context carries `_truncated: true`. Errors are grouped by class and
-location, or by the `fingerprint` you pass.
+location (class and message when the stack has no location), or by the `fingerprint` you pass.
 
 The URL of the page is added to the context as `url`, without query string or fragment, because they may carry tokens.
 A `url` key in your own context wins. Do not put secrets in messages or contexts.
@@ -209,9 +212,9 @@ The keepalive budget is applied when a batch leaves the page during the exit, an
 printed at that moment. A batch that exceeds the budget is cut: the leading events that fit are sent with keepalive,
 the rest are dropped, and one notice reports how many. For `flush()`, a cut batch counts all its events as `sent` when
 the request carrying the kept events succeeds, because the batch was delivered as a whole. A batch where no event fits
-is answered with a 413 without leaving the page and counts as `failed`. The `dropped` field of the result only counts
-events refused by the buffer limit, not the ones cut here. The flush started on exit is not awaited by the SDK, so its
-result is seen only when you call `flush()` yourself.
+gets a 413 that the SDK creates itself: it is synthetic, no request leaves the page, and it counts as `failed`. The
+`dropped` field of the result only counts events refused by the buffer limit, not the ones cut here. The flush started
+on exit is not awaited by the SDK, so its result is seen only when you call `flush()` yourself.
 
 ## Troubleshooting
 

@@ -44,8 +44,12 @@ function mount(root: Component, configure: (app: ReturnType<typeof createApp>) =
   const app = createApp({ render: () => h(root, { secret: 'do-not-send' }) });
   configure(app);
   const document = (globalThis as unknown as { document: { createElement(tag: string): object } }).document;
-  app.mount(document.createElement('div') as never);
-  app.unmount();
+
+  try {
+    app.mount(document.createElement('div') as never);
+  } finally {
+    app.unmount();
+  }
 }
 
 beforeEach(() => {
@@ -127,6 +131,32 @@ describe('SerenoVue', () => {
 
     expect(getClient()).toBeUndefined();
     expect(events).toHaveLength(1);
+  });
+
+  it('keeps the client of the last installation when the plugin is installed again with another client', async () => {
+    const previous = vi.fn();
+    const firstEvents: SerenoEvent[] = [];
+    const first = new BrowserClient({
+      ...options(),
+      fetch: (_url: string, request: FetchInit) => {
+        firstEvents.push(...(JSON.parse(request.body) as { events: SerenoEvent[] }).events);
+
+        return Promise.resolve({ status: 202, text: async () => '' });
+      },
+    });
+    const second = new BrowserClient(options());
+
+    mount(Exploding, (app) => {
+      app.config.errorHandler = previous;
+      app.use(SerenoVue, { client: first });
+      SerenoVue.install(app, { client: second });
+    });
+    await first.flush();
+    await second.flush();
+
+    expect(firstEvents).toHaveLength(0);
+    expect(events).toHaveLength(1);
+    expect(previous).toHaveBeenCalledTimes(1);
   });
 
   it('does nothing and does not throw without a client', () => {
