@@ -17,10 +17,12 @@ function codePoints(value: string): number {
   return Array.from(value).length;
 }
 
-function makeError(spec: { class: string; message: string; file?: string; line?: number }): Error {
+function makeError(spec: { class: string; message: string; file?: string; line?: number; trace?: string }): Error {
   const error = new Error(spec.message);
   error.stack =
-    spec.file === undefined
+    spec.trace !== undefined
+      ? spec.trace
+      : spec.file === undefined
       ? `Error: ${spec.message}`
       : `Error: ${spec.message}\n    at Object.<anonymous> (${spec.file}:${spec.line}:5)\n    at node:internal/main:1:1`;
 
