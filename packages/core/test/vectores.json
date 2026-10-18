@@ -660,6 +660,66 @@
         }
     },
     {
+        "name": "excepción sin ubicación: clase y mensaje",
+        "input": {
+            "level": "error",
+            "time": "2026-01-02T03:04:05.123456+00:00",
+            "message": "Card declined",
+            "context": {
+                "exception": {
+                    "$exception": {
+                        "class": "RuntimeException",
+                        "message": "Card declined"
+                    }
+                }
+            }
+        },
+        "expected": {
+            "level": "error",
+            "message": "Card declined",
+            "occurred_at": "2026-01-02T03:04:05.123Z",
+            "context": {
+                "exception": {
+                    "class": "RuntimeException",
+                    "message": "Card declined",
+                    "location": "",
+                    "trace": "<trace>"
+                }
+            },
+            "fingerprint": "RuntimeException|Card declined"
+        }
+    },
+    {
+        "name": "excepción sin ubicación: fingerprint limpio y recortado",
+        "input": {
+            "level": "error",
+            "time": "2026-01-02T03:04:05.123456+00:00",
+            "message": "Card declined",
+            "context": {
+                "exception": {
+                    "$exception": {
+                        "class": "RuntimeException",
+                        "message": "Card declined\u0000  "
+                    }
+                }
+            }
+        },
+        "expected": {
+            "level": "error",
+            "message": "Card declined",
+            "occurred_at": "2026-01-02T03:04:05.123Z",
+            "context": {
+                "exception": {
+                    "class": "RuntimeException",
+                    "message": "Card declined  ",
+                    "location": "",
+                    "trace": "<trace>"
+                }
+            },
+            "fingerprint": "RuntimeException|Card declined"
+        }
+    },
+    {
         "name": "fingerprint largo",
         "input": {
             "level": "error",

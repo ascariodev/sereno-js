@@ -67,7 +67,7 @@ Functions:
   `exception` key is reserved for it and overrides yours; with any other value the context is sent as is.
 - `log(level, message, context?)`: buffers a record. Levels: `debug`, `info`, `notice`, `warning`, `error`, `critical`,
   `alert`, `emergency`. To group repeated events pass `{ fingerprint: '...' }` in the context; errors are grouped by
-  class, file and line.
+  class, file and line (by class and message when the stack has no location).
 - `flush()`: sends what is buffered and resolves with `{ sent, failed, dropped }`. It never rejects. Call it before a
   serverless handler returns.
 - `close()`: removes the process handlers, sends what is buffered and leaves the SDK uninitialized.
@@ -284,7 +284,8 @@ Every outcome other than "Connected" exits with code 1.
 
 Each record becomes an event with `id`, `level`, `message`, `occurred_at` (UTC), optional `context` and optional
 `fingerprint`. The fingerprint groups repeated events: pass `{ fingerprint: '...' }` in the context, or capture an
-`Error`, which uses its class, file and line (`Class|file:line`). Fingerprints over 255 characters are replaced by their
+`Error`, which uses its class, file and line (`Class|file:line`), or its class and message (`Class|message`) when the
+stack has no location. Fingerprints over 255 characters are replaced by their
 SHA-1. Limits keep the payload valid for the API: messages are cut at 8192 characters, context at 32 KB, 8 levels of
 depth and 50 items per array, strings in the context at 2048 characters and stack traces at 2000. When anything is
 cut, the context carries `_truncated: true`. An empty message is sent as `-`.

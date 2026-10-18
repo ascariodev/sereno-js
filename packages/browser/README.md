@@ -178,7 +178,7 @@ Each record becomes an event with `id`, `level`, `message`, `occurred_at` (UTC),
 `fingerprint`, formatted by `@ascariodev/sereno-core` with the same limits as the other Sereno SDKs: messages are cut at
 8192 characters, context at 32 KB, strings in the context at 2048 characters (the React `componentStack` included) and
 stack traces at 2000. When anything is cut, the context carries `_truncated: true`. Errors are grouped by class and
-location, or by the `fingerprint` you pass.
+location (class and message when the stack has no location), or by the `fingerprint` you pass.
 
 The URL of the page is added to the context as `url`, without query string or fragment, because they may carry tokens.
 A `url` key in your own context wins. Do not put secrets in messages or contexts.

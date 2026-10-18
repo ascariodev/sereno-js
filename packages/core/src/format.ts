@@ -102,7 +102,7 @@ export function serializeException(error: Error): SerializedException {
 
   return {
     class: errorClass(error),
-    message: attempt(() => (typeof error.message === 'string' ? error.message : String(error.message ?? '')), ''),
+    message: errorMessage(error),
     location: stackLocation(stack),
     trace: substring(clean(stack), MAX_TRACE_LENGTH),
   };
@@ -367,7 +367,13 @@ function formatFingerprint(context: object): string | null {
     const exception = (context as Record<string, unknown>).exception;
 
     if (isError(exception)) {
-      return fitFingerprint(`${errorClass(exception)}|${stackLocation(errorStack(exception))}`);
+      const location = stackLocation(errorStack(exception));
+
+      return fitFingerprint(
+        location === ''
+          ? trim(clean(`${errorClass(exception)}|${errorMessage(exception)}`))
+          : `${errorClass(exception)}|${location}`,
+      );
     }
 
     return null;
@@ -380,6 +386,10 @@ function fitFingerprint(fingerprint: string): string {
 
 function errorStack(error: Error): string {
   return attempt(() => (typeof error.stack === 'string' ? error.stack : ''), '');
+}
+
+function errorMessage(error: Error): string {
+  return attempt(() => (typeof error.message === 'string' ? error.message : String(error.message ?? '')), '');
 }
 
 function errorClass(error: Error): string {
