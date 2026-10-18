@@ -70,7 +70,7 @@ export class SerenoWinstonTransport extends Base {
         const split = splitException(fields, ['error', 'err']);
         const splat = (info as Record<symbol, unknown>)[SPLAT];
         const thrown = Array.isArray(splat) ? (splat as unknown[]).find((item): item is Error => item instanceof Error) : undefined;
-        const exception = split.exception ?? thrown ?? (typeof info.stack === 'string' ? reviveError({ message, stack: info.stack }) : undefined);
+        const exception = split.exception ?? thrown ?? (typeof info.stack === 'string' ? reviveError({ name: info.name, message, stack: info.stack }) : undefined);
 
         emit(this.target, level, message, split.context, exception);
       }

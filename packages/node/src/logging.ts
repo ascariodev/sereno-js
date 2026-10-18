@@ -67,14 +67,22 @@ export function emit(options: LoggerTransportOptions, level: LogLevel, message: 
 
 /** Sends what the client has buffered, then calls `done`. Never throws. */
 export function flushClient(options: LoggerTransportOptions, done?: () => void): void {
+  const finish = (): void => {
+    try {
+      done?.();
+    } catch {
+      // a logger must never break the application
+    }
+  };
+
   try {
     const flushing = activeClient(options)?.flush();
 
     void (flushing ?? Promise.resolve()).then(
-      () => done?.(),
-      () => done?.(),
+      finish,
+      finish,
     );
   } catch {
-    done?.();
+    finish();
   }
 }
