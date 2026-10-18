@@ -174,6 +174,20 @@ describe('deduplication and page limit', () => {
     expect(sent().map((event) => event.message)).toEqual(['same place', 'same place', 'other']);
   });
 
+  it('keeps the first event that carries a componentStack and drops a third one with another', async () => {
+    start();
+    const error = sameError();
+
+    dispatchError(error);
+    captureException(error, { componentStack: '\n    at First' });
+    captureException(error, { componentStack: '\n    at Second' });
+    await flush();
+
+    expect(sent()).toHaveLength(2);
+    expect(sent()[0]?.context?.componentStack).toBeUndefined();
+    expect(sent()[1]?.context?.componentStack).toBe('\n    at First');
+  });
+
   it(`accepts at most ${MAX_EVENTS_PER_PAGE} events per page and warns once without the key`, async () => {
     const client = start();
 
