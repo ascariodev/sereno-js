@@ -607,12 +607,13 @@ describe('Transport error redaction', () => {
   });
 
   it('drops userinfo from URLs in the error message', async () => {
+    const key = 'wsk_7f3a9c1e5b2d8a4f6e0c9b7d1a3f5e8c';
     const fetch: FetchLike = async () => {
-      throw new Error('connect to http://user:pass@example.test/api failed');
+      throw new Error(`connect to http://user:${key}@example.test/api failed with ${key}`);
     };
-    const result = await new Transport('http://user:pass@example.test', 'k', { retry: false, fetch }).send([]);
+    const result = await new Transport(`http://user:${key}@example.test`, key, { retry: false, fetch }).send([]);
 
-    expect(result).toMatchObject({ status: 'error', error: 'connect to http://example.test/api failed' });
+    expect(result).toMatchObject({ status: 'error', error: 'connect to http://example.test/api failed with ***' });
     expect(redact('see https://u@h/x and https://h/a@b', '')).toBe('see https://h/x and https://h/a@b');
   });
 });

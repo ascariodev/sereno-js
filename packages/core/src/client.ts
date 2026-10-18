@@ -130,6 +130,7 @@ export function redact(text: string, ...secrets: string[]): string {
   let result = text;
 
   for (const secret of secrets.filter((value) => value !== '').sort((a, b) => b.length - a.length)) {
+    // JSON.stringify, not Python's unicode_escape: non-ASCII stays raw and controls are escaped differently.
     const escaped = JSON.stringify(secret).slice(1, -1);
 
     for (const variant of new Set([`Bearer ${secret}`, `Bearer ${escaped}`, secret, escaped])) {
