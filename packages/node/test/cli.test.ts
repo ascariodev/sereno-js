@@ -166,7 +166,7 @@ describe('runCli', () => {
       const out: string[] = [];
       const err: string[] = [];
 
-      return { out, err, io: { env: {}, out: (text: string) => out.push(text), err: (text: string) => err.push(text) } };
+      return { out, err, io: { env: {} as Record<string, string>, out: (text: string) => out.push(text), err: (text: string) => err.push(text) } };
     }
 
     it('does not print the --key value when the event is sent', async () => {
@@ -177,6 +177,18 @@ describe('runCli', () => {
       expect(requests[0]!.headers.authorization).toBe(`Bearer ${key}`);
       expect(streams.out.join('') + streams.err.join('')).not.toContain(key);
       expect(streams.out.join('')).not.toContain('wsk_test');
+      expect(streams.err).toEqual([]);
+    });
+
+    it('does not print the SERENO_KEY from the environment', async () => {
+      const url = await serve(status(202));
+      const streams = split();
+      streams.io.env = { SERENO_URL: url, SERENO_KEY: key };
+
+      expect(await runCli(['test'], streams.io)).toBe(0);
+      expect(requests[0]!.headers.authorization).toBe(`Bearer ${key}`);
+      expect(streams.out.join('') + streams.err.join('')).not.toContain(key);
+      expect(streams.err).toEqual([]);
     });
 
     it('does not print the --key=value form on a rejected key', async () => {
