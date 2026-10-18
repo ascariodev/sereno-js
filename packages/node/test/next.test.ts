@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
+import * as nodeModule from 'node:module';
 import type { AddressInfo } from 'node:net';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { Instrumentation } from 'next/dist/server/instrumentation/types';
@@ -235,7 +236,8 @@ function runModule(source: string, env: Record<string, string> = {}): string {
 }
 
 describe('edge runtime', () => {
-  it('does nothing and never loads the Node modules of the SDK', () => {
+  // module.registerHooks only exists from Node 22.15.
+  it.skipIf(!('registerHooks' in nodeModule))('does nothing and never loads the Node modules of the SDK', () => {
     const output = runModule(
       `
 import { registerHooks } from 'node:module';
