@@ -17,6 +17,8 @@ npm install @ascariodev/sereno-core
   `occurred_at`, `context?`, `fingerprint?`). It applies the API limits (message 8192 characters, context 32 KB, depth 8,
   50 items per array) and serializes `Error` values found under the `exception` context key. It never throws.
 - `new Client(options)`: buffers records and sends them in batches. Options: `url`, `key`, `level` (default `debug`),
+  `release` (build version sent with every event so the server finds its source maps; 1 to 200 characters without control or
+  invisible characters, surrounding whitespace is trimmed and an invalid value is ignored),
   `timeout` (seconds, default 2, max 10), `retry` (default `true`), `notifier` (receives failure notices, default
   `console.error`), `fetch`, `headers`, `fetchOptions`. Methods: `log(record)`, `flush()` (resolves with `{ sent, failed,
   dropped }`, never rejects) and the `configured` flag. Without `url` and `key` it is inert.

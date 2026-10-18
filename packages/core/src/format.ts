@@ -19,6 +19,7 @@ export interface SerenoEvent {
   occurred_at: string;
   context?: Record<string, unknown>;
   fingerprint?: string;
+  release?: string;
 }
 
 export interface SerializedException {

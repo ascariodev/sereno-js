@@ -183,7 +183,9 @@ location (class and message when the stack has no location), or by the `fingerpr
 The URL of the page is added to the context as `url`, without query string or fragment, because they may carry tokens.
 A `url` key in your own context wins. Do not put secrets in messages or contexts.
 
-Stack traces of minified bundles point to the minified files; source maps are not applied.
+Pass `release` (the version of your build, for example `release: import.meta.env.VITE_RELEASE`) to tag every event with it;
+the server uses it to find the source maps of that build. It is trimmed, limited to 200 characters without control or
+invisible characters, and ignored when invalid. Without source maps, stack traces of minified bundles point to the minified files.
 
 ## Delivery behavior
 
