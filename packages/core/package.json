@@ -1,6 +1,6 @@
 {
   "name": "@ascariodev/sereno-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared core of the Sereno SDKs for Node.js and the browser.",
   "license": "MIT",
   "homepage": "https://github.com/ascariodev/sereno-js/tree/main/packages/core#readme",

@@ -1,6 +1,6 @@
 {
   "name": "@ascariodev/sereno-node",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sereno SDK for Node.js.",
   "license": "MIT",
   "homepage": "https://github.com/ascariodev/sereno-js/tree/main/packages/node#readme",
@@ -94,7 +94,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ascariodev/sereno-core": "^0.1.0"
+    "@ascariodev/sereno-core": "^0.2.0"
   },
   "typesVersions": {
     "*": {
