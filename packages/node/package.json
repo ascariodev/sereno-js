@@ -57,6 +57,26 @@
         "default": "./dist/cjs/next.js"
       }
     },
+    "./pino": {
+      "import": {
+        "types": "./dist/esm/pino.d.ts",
+        "default": "./dist/esm/pino.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pino.d.ts",
+        "default": "./dist/cjs/pino.js"
+      }
+    },
+    "./winston": {
+      "import": {
+        "types": "./dist/esm/winston.d.ts",
+        "default": "./dist/esm/winston.js"
+      },
+      "require": {
+        "types": "./dist/cjs/winston.d.ts",
+        "default": "./dist/cjs/winston.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "bin": {
@@ -86,16 +106,24 @@
       ],
       "next": [
         "./dist/esm/next.d.ts"
+      ],
+      "pino": [
+        "./dist/esm/pino.d.ts"
+      ],
+      "winston": [
+        "./dist/esm/winston.d.ts"
       ]
     }
   },
   "peerDependencies": {
-    "express": ">=4",
     "@nestjs/common": ">=9",
     "@nestjs/core": ">=9",
+    "express": ">=4",
+    "next": ">=15",
     "reflect-metadata": ">=0.1.12",
     "rxjs": ">=7",
-    "next": ">=15"
+    "pino": ">=8",
+    "winston": ">=3"
   },
   "peerDependenciesMeta": {
     "express": {
@@ -115,6 +143,12 @@
     },
     "next": {
       "optional": true
+    },
+    "pino": {
+      "optional": true
+    },
+    "winston": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -124,8 +158,10 @@
     "@types/express": "^5.0.6",
     "express": "^5.3.0",
     "next": "^16.4.1",
+    "pino": "^10.4.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "winston": "^3.19.0"
   },
   "publishConfig": {
     "access": "public"

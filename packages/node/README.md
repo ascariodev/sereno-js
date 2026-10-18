@@ -203,6 +203,53 @@ Set `SERENO_URL` and `SERENO_KEY` in the server environment. Notes:
 - Client-side errors are not captured here. The SDK has no development-specific logic, so `next dev` uses the same
   hooks; it is not tested against a real `next dev` server.
 
+## pino
+
+Install `pino` (8 or newer) next to the SDK and pass the Sereno stream as pino's destination, in the same process:
+
+```js
+import pino from 'pino';
+import { init } from '@ascariodev/sereno-node';
+import { serenoPinoStream } from '@ascariodev/sereno-node/pino';
+
+init();
+
+const logger = pino(serenoPinoStream());
+logger.error({ err: new Error('boom'), jobId: 7 }, 'job failed');
+```
+
+- Levels: trace and debug go to `debug`, info to `info`, warn to `warning`, error to `error` and fatal to `critical`
+  (custom levels by number range).
+- The `err` (or `error`) field is sent as the exception; the other fields are the context. `level`, `time`, `pid`,
+  `hostname` and `msg` are not.
+- To keep your usual output as well, use `pino.multistream([{ stream: process.stdout }, { stream: serenoPinoStream() }])`
+  as the second argument of `pino`.
+- A custom `messageKey` or `errorKey` is not supported. Its `flush(cb)` sends the buffer; `end()` does nothing.
+- It is a plain destination, not a `pino.transport` target: transports run in a worker thread, where the client from
+  `init()` does not exist. Pass `serenoPinoStream({ client })` to use your own `Client` instead of the active one.
+
+## winston
+
+Install `winston` (3 or newer) and add the transport:
+
+```js
+import winston from 'winston';
+import { init } from '@ascariodev/sereno-node';
+import { SerenoWinstonTransport } from '@ascariodev/sereno-node/winston';
+
+init();
+
+const logger = winston.createLogger({ transports: [new SerenoWinstonTransport()] });
+logger.error('job failed', { error: new Error('boom'), jobId: 7 });
+```
+
+- Levels map by name: `warn` to `warning`, `http` to `info`, `verbose` and `silly` to `debug`, and the syslog names
+  (`emerg`, `crit`, ...) to their Sereno level. Unknown names are sent as `info`.
+- The `error` (or `err`) field, an `Error` logged directly (`logger.error(error)`) or passed as meta (`logger.error('msg', error)`), is sent as the exception; the
+  other meta fields are the context.
+- It extends winston's own transport, so `level`, `silent` and `format` options work as usual; `handleExceptions` is not supported.
+- `new SerenoWinstonTransport({ client })` uses your own `Client` instead of the one from `init()`.
+
 ## Configuration
 
 | Variable | Default | Description |
