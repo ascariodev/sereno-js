@@ -94,6 +94,15 @@ describe('sourcemaps upload', () => {
     );
   });
 
+  it('uses SERENO_RELEASE when --release is absent, and --release wins over it', async () => {
+    const url = await serve(() => ({ status: 201 }));
+    const env = { SERENO_URL: url, SERENO_KEY: 'wsk_key', SERENO_RELEASE: 'env-rel' };
+
+    expect(await runCli(['sourcemaps', 'upload', dir, '--url-prefix=/'], io(env).io)).toBe(0);
+    expect(await runCli(['sourcemaps', 'upload', dir, '--release=flag-rel', '--url-prefix=/'], io(env).io)).toBe(0);
+    expect([...new Set(uploads.map(({ release }) => release))]).toEqual(['env-rel', 'flag-rel']);
+  });
+
   it('goes on after a failed map and exits 1, with the server message', async () => {
     const url = await serve((fileUrl) =>
       fileUrl.endsWith('vendor.mjs') ? { status: 422, body: { message: 'The map must be a version 3 source map without sections.' } } : { status: 201 },
@@ -135,7 +144,11 @@ describe('sourcemaps upload', () => {
       return [await runCli(args, result.io), result.lines.join('')];
     };
 
-    expect(await run(['sourcemaps', 'upload', dir, '--url-prefix=/'])).toEqual([1, 'Missing release: pass --release=<release>.\n']);
+    expect(await run(['sourcemaps', 'upload', dir, '--url-prefix=/'])).toEqual([1, 'Missing release: pass --release=<release> or set SERENO_RELEASE.\n']);
+    expect(await run(['sourcemaps', 'upload', dir, '--url-prefix=/'], { SERENO_URL: url, SERENO_KEY: 'wsk_key', SERENO_RELEASE: '  ' })).toEqual([
+      1,
+      'Missing release: pass --release=<release> or set SERENO_RELEASE.\n',
+    ]);
     expect(await run(['sourcemaps', 'upload', dir, '--release=r1'])).toEqual([
       1,
       'Missing URL prefix: pass --url-prefix=<prefix>, the URL path the JavaScript files are served from.\n',
