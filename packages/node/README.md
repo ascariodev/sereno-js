@@ -296,7 +296,7 @@ npx @ascariodev/sereno-node sourcemaps upload dist --release="$RELEASE" --url-pr
 
 - `<dir>` is searched recursively for `*.js.map`, `*.mjs.map` and `*.cjs.map` (CSS maps are skipped).
 - `--release` must be the same `release` the browser SDK sends with its events (1 to 200 characters, no control
-  characters). Uploading again for the same release and file replaces the map.
+  characters). If the option is absent, `SERENO_RELEASE` is used, so the CI can set it once. Uploading again for the same release and file replaces the map.
 - `--url-prefix` is the URL path the files of `<dir>` are served from. Each map is stored for the path of its JavaScript
   file: the prefix plus the path of the map relative to `<dir>`, without `.map` (`dist/assets/index-abc.js.map` with
   `--url-prefix=/` becomes `/assets/index-abc.js`). A full URL is accepted and only its path is kept

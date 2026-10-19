@@ -62,7 +62,7 @@ const USAGE =
   'Sends a test event to Sereno.\n' +
   'Usage: sereno-node sourcemaps upload <dir> --release=<release> --url-prefix=<prefix> [--key=<key>] [--url=<url>]\n' +
   'Uploads the *.js.map files under <dir> with the server key. <prefix> is the URL path the JavaScript files are served from.\n' +
-  'Both commands fall back to SERENO_KEY and SERENO_URL.\n';
+  'Both commands fall back to SERENO_KEY and SERENO_URL; sourcemaps upload also to SERENO_RELEASE.\n';
 
 const VALUE_OPTIONS = ['key', 'url', 'release', 'url-prefix'];
 
@@ -116,7 +116,7 @@ async function sourcemapsCommand(
 
   const url = (pick('url', 'SERENO_URL') ?? '').trim();
   const key = (pick('key', 'SERENO_KEY') ?? '').trim();
-  const release = option(args, 'release') ?? '';
+  const release = pick('release', 'SERENO_RELEASE') ?? '';
   const urlPrefix = option(args, 'url-prefix') ?? '';
   const missing =
     url === ''
@@ -124,7 +124,7 @@ async function sourcemapsCommand(
       : key === ''
         ? 'Missing key: pass --key=<key> or set SERENO_KEY.'
         : release.trim() === ''
-          ? 'Missing release: pass --release=<release>.'
+          ? 'Missing release: pass --release=<release> or set SERENO_RELEASE.'
           : urlPrefix.trim() === ''
             ? 'Missing URL prefix: pass --url-prefix=<prefix>, the URL path the JavaScript files are served from.'
             : undefined;
